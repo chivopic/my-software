@@ -114,7 +114,7 @@ V0 的交互复杂度撑不起这些抽象，装了以后删不掉。
 每个任务提交前，逐项跑：
 
 ```bash
-pnpm typecheck     # tsc --noEmit
+pnpm typecheck     # next typegen && tsc --noEmit（typedRoutes 的类型要先生成）
 pnpm lint          # eslint .（Next 16 已移除 next lint）
 pnpm test          # vitest run（存在测试时）
 pnpm build         # next build
@@ -158,7 +158,7 @@ feat(tasks): 四列看板与状态切换
 
 ## 8. V0 任务清单
 
-**进度：V0-01、V0-02 已完成。** 下一个是 V0-03。
+**进度：V0-01、V0-02、V0-03 已完成。** 下一个是 V0-04。
 
 按顺序执行。每项标注依赖和验收要点，详细验收标准回查 `docs/01-v0-prd.md` 对应用户故事。
 

@@ -73,7 +73,7 @@ Personal Workbench
 ```
 
 - Sidebar 固定宽 240px，`≥1280px` 常驻；`768–1279px` 收成 64px 图标栏；`<768px` 抽屉。
-- Topbar 高 56px，右侧常驻 `+ Capture`（提示 `⌘K`）。
+- Topbar 高 56px，右侧常驻主题切换；`+ Capture`（提示 `⌘K`）在 V0-10 随 Quick Capture 一起加进来。
 - 内容区最大宽度 1200px 居中，左右留白 24px。
 
 ## 4. 组件清单（V0）
@@ -83,8 +83,10 @@ Personal Workbench
 ```text
 components/
 ├── layout/
-│   ├── app-shell.tsx          Sidebar + Topbar + 内容槽
+│   ├── app-shell.tsx          Sidebar + Topbar + 内容槽（抽屉状态在这里）
+│   ├── nav.tsx                导航项与图标，Sidebar 和 Topbar 共用
 │   ├── sidebar.tsx
+│   ├── theme-toggle.tsx
 │   └── topbar.tsx
 ├── capture/
 │   ├── capture-dialog.tsx     ⌘K 弹窗（Client）
