@@ -1,0 +1,158 @@
+// 这份 schema 的唯一真源是 docs/03-data-model.md。
+// 改结构：先改文档，再改这里，再 pnpm db:migrate 生成 migration。
+//
+// Prisma 7 说明：连接串不再写在 datasource 里（见 prisma.config.ts），
+// 客户端通过 driver adapter 连接（见 lib/db.ts）。
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────── User ─────────────
+// V0 单用户：seed 一行，id 固定为 "local-user"，通过 lib/current-user.ts 取。
+// V1 接入认证时这张表已经就位，业务表无需迁移。
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  name      String?
+  timezone  String   @default("Asia/Shanghai")
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  notes    Note[]
+  tasks    Task[]
+  projects Project[]
+  tags     Tag[]
+}
+
+// ───────────── Tag ─────────────
+// Note 和 Task 共用一套标签，这样「AI Infra」这个概念在知识和行动两侧是同一个东西，
+// 是后面做关联分析（学了什么 vs 做了什么）的前提。
+model Tag {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  slug      String
+  color     String?
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes NoteTag[]
+  tasks TaskTag[]
+
+  @@unique([userId, slug])
+  @@index([userId])
+}
+
+// ───────────── Note ─────────────
+model Note {
+  id         String    @id @default(cuid())
+  userId     String
+  title      String
+  content    String    @default("") // Markdown 原文
+  isFavorite Boolean   @default(false)
+  isArchived Boolean   @default(false)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tags NoteTag[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@index([userId, deletedAt])
+}
+
+model NoteTag {
+  noteId String
+  tagId  String
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, tagId])
+  @@index([tagId])
+}
+
+// ───────────── Task ─────────────
+enum TaskStatus {
+  INBOX
+  TODO
+  DOING
+  DONE
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  userId      String
+  projectId   String?
+  title       String
+  description String?
+  status      TaskStatus   @default(INBOX)
+  priority    TaskPriority @default(MEDIUM)
+
+  dueDate         DateTime? @db.Date // 什么时候之前要做完
+  scheduledFor    DateTime? @db.Date // 打算哪天做（Planner 写入）
+  scheduledStart  DateTime? @db.Timestamptz(3) // 时间段起（UTC 时刻）
+  scheduledEnd    DateTime? @db.Timestamptz(3) // 时间段止
+  estimateMinutes Int?
+
+  completedAt DateTime? @db.Timestamptz(3)
+  order       Float     @default(0) // 同一状态列内的手工排序
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  tags    TaskTag[]
+
+  @@index([userId, status, order])
+  @@index([userId, dueDate])
+  @@index([userId, scheduledFor])
+  @@index([userId, deletedAt])
+}
+
+model TaskTag {
+  taskId String
+  tagId  String
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, tagId])
+  @@index([tagId])
+}
+
+// ───────────── Project ─────────────
+// V0 建表但不做管理界面：任务可以不属于任何 project。
+// 先建是因为 Task.projectId 一旦后加就要写迁移，成本远高于现在多一张空表。
+model Project {
+  id          String    @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  color       String?
+  archivedAt  DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  @@index([userId, deletedAt])
+}
