@@ -56,9 +56,12 @@
 
 **允许（V0 全部依赖，就这些）**
 
+已锁定的版本见 `package.json`（next 16 / react 19 / tailwind 4 / eslint 10 / typescript 5.9）。
+TypeScript 停在 5.9 而不是 7.x：生态里的 eslint 插件尚未跟上，等 V1 再评估。
+
 ```text
 next  react  react-dom  typescript
-tailwindcss  postcss  autoprefixer
+tailwindcss  @tailwindcss/postcss     # v4 用 CSS-first 配置，不需要 tailwind.config 和 autoprefixer
 prisma  @prisma/client
 zod
 date-fns
@@ -68,6 +71,10 @@ eslint  eslint-config-next  prettier  prettier-plugin-tailwindcss
 tsx                      # 跑 seed
 vitest  @testing-library/react   # 见第 6 节
 ```
+
+**Next 16 注意**：这一版与多数模型的训练数据差异较大（App Router 细节、`next lint` 已移除、
+Tailwind v4 的 CSS-first 配置）。写代码前查 `node_modules/next/dist/docs/` 里的对应指南，
+不要凭记忆写 API。
 
 **明确禁止（V0）**：任何组件库（shadcn/MUI/Radix）、任何状态管理库（redux/zustand/jotai）、
 任何数据请求库（swr/react-query）、任何拖拽库、任何 AI SDK、任何认证库、任何图表库、ORM 以外的查询构建器。
@@ -92,7 +99,7 @@ V0 的交互复杂度撑不起这些抽象，装了以后删不掉。
 
 ```bash
 pnpm typecheck     # tsc --noEmit
-pnpm lint          # next lint
+pnpm lint          # eslint .（Next 16 已移除 next lint）
 pnpm test          # vitest run（存在测试时）
 pnpm build         # next build
 ```

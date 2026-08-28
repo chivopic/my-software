@@ -49,6 +49,25 @@ Prisma + PostgreSQL
 V0 **不引入**：认证、AI 调用、RSS 抓取、后台任务、状态管理库、组件库。
 理由见 [`docs/01-v0-prd.md`](docs/01-v0-prd.md) 的「明确不做」一节。
 
+## 本地开发
+
+```bash
+pnpm install
+pnpm dev          # http://localhost:3000
+```
+
+其他脚本：
+
+| 命令 | 作用 |
+| --- | --- |
+| `pnpm build` | 生产构建 |
+| `pnpm typecheck` | `tsc --noEmit` |
+| `pnpm lint` | ESLint（Next 16 已移除 `next lint`） |
+| `pnpm format` | Prettier 写入（Markdown 不参与格式化） |
+| `pnpm test` | Vitest |
+
+数据库的接入在 V0-02，现在还不需要 `.env`。
+
 ## 文档
 
 | 文档 | 内容 |

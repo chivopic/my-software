@@ -1,0 +1,8 @@
+.next
+node_modules
+pnpm-lock.yaml
+coverage
+next-env.d.ts
+
+# Markdown 由人手写并手工排版，交给 Prettier 会把表格重排，diff 变噪音
+*.md
