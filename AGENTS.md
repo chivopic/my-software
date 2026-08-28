@@ -44,6 +44,7 @@
 │   ├── current-user.ts         V0 返回固定 local-user
 │   ├── queries/                只读，函数清单见 docs/03 第 4 节
 │   ├── mutations/              写操作
+│   ├── action-result.ts        Server Action 的统一返回形状
 │   ├── validation/             zod schema
 │   ├── utils/                  date.ts / cn.ts / markdown.ts
 │   └── generated/prisma/       Prisma Client 生成物，不入库、不手改
@@ -125,6 +126,8 @@ pnpm build         # next build
 - [ ] 涉及的空状态、加载态、错误态都实现了
 - [ ] 浅色和深色模式都看过
 - [ ] 没有 console 报错、没有 hydration warning
+      （已知例外：dev 模式下 notFound() 页面会警告 "Encountered a script tag"，
+      来自 layout 里的主题脚本，生产构建无此警告，不用再查）
 - [ ] 如果改了 schema：跑过 `pnpm exec prisma format`、有 migration 文件、`docs/03-data-model.md` 已同步
 
 ## 6. 测试策略
@@ -158,7 +161,7 @@ feat(tasks): 四列看板与状态切换
 
 ## 8. V0 任务清单
 
-**进度：V0-01、V0-02、V0-03 已完成。** 下一个是 V0-04。
+**进度：V0-01 ~ V0-04 已完成。** 下一个是 V0-05。
 
 按顺序执行。每项标注依赖和验收要点，详细验收标准回查 `docs/01-v0-prd.md` 对应用户故事。
 

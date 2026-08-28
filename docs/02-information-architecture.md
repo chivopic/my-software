@@ -45,7 +45,7 @@ Personal Workbench
 | --- | --- | --- |
 | `/` | Server Component | Dashboard，并行取 4 组数据 |
 | `/notes` | Server Component | 支持 `q` / `tag` / `filter` / `page` 查询参数 |
-| `/notes/new` | Server Action | 创建空笔记后 `redirect` 到 `/notes/[id]` |
+| ~~`/notes/new`~~ | — | **不做这个路由**：新建是写操作，做成 GET 页面会被 `Link` 预取误触发。改为「新建笔记」按钮提交 form 调 Server Action，创建后 `redirect` 到 `/notes/[id]` |
 | `/notes/[id]` | Server + Client 编辑器 | 自动保存 |
 | `/tasks` | Server Component | 支持 `view` / `tag` / `project` 查询参数 |
 | `/planner` | Server Component | 支持 `date`（缺省为今天，格式 `YYYY-MM-DD`） |
@@ -101,6 +101,8 @@ components/
 ├── notes/
 │   ├── note-list.tsx
 │   ├── note-card.tsx
+│   ├── new-note-button.tsx    form + Server Action
+│   ├── delete-note-button.tsx 软删除 + toast 撤销
 │   ├── note-editor.tsx        Client，自动保存
 │   └── markdown.tsx           渲染
 ├── planner/
@@ -131,7 +133,7 @@ components/
 - 不写 REST API（`/api/export` 除外）。V3 需要给后台任务提供接口时再补。
 - 所有 Prisma 调用集中在 `lib/queries/` 和 `lib/mutations/`，页面和组件里不出现 `prisma.`。
 
-Server Action 签名统一：
+Server Action 签名统一（定义在 `lib/action-result.ts`，配套 `ok()` / `fail()` 两个构造函数）：
 
 ```ts
 type ActionResult<T = void> =
