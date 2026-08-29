@@ -45,7 +45,7 @@ Personal Workbench
 | --- | --- | --- |
 | `/` | Server Component | Dashboard，并行取 4 组数据 |
 | `/notes` | Server Component | 支持 `q` / `tag` / `filter` / `page` 查询参数 |
-| `/notes/new` | Server Action | 创建空笔记后 `redirect` 到 `/notes/[id]` |
+| ~~`/notes/new`~~ | — | **不做这个路由**：新建是写操作，做成 GET 页面会被 `Link` 预取误触发。改为「新建笔记」按钮提交 form 调 Server Action，创建后 `redirect` 到 `/notes/[id]` |
 | `/notes/[id]` | Server + Client 编辑器 | 自动保存 |
 | `/tasks` | Server Component | 支持 `view` / `tag` / `project` 查询参数 |
 | `/planner` | Server Component | 支持 `date`（缺省为今天，格式 `YYYY-MM-DD`） |
@@ -73,7 +73,7 @@ Personal Workbench
 ```
 
 - Sidebar 固定宽 240px，`≥1280px` 常驻；`768–1279px` 收成 64px 图标栏；`<768px` 抽屉。
-- Topbar 高 56px，右侧常驻 `+ Capture`（提示 `⌘K`）。
+- Topbar 高 56px，右侧常驻主题切换；`+ Capture`（提示 `⌘K`）在 V0-10 随 Quick Capture 一起加进来。
 - 内容区最大宽度 1200px 居中，左右留白 24px。
 
 ## 4. 组件清单（V0）
@@ -83,8 +83,10 @@ Personal Workbench
 ```text
 components/
 ├── layout/
-│   ├── app-shell.tsx          Sidebar + Topbar + 内容槽
+│   ├── app-shell.tsx          Sidebar + Topbar + 内容槽（抽屉状态在这里）
+│   ├── nav.tsx                导航项与图标，Sidebar 和 Topbar 共用
 │   ├── sidebar.tsx
+│   ├── theme-toggle.tsx
 │   └── topbar.tsx
 ├── capture/
 │   ├── capture-dialog.tsx     ⌘K 弹窗（Client）
@@ -99,6 +101,8 @@ components/
 ├── notes/
 │   ├── note-list.tsx
 │   ├── note-card.tsx
+│   ├── new-note-button.tsx    form + Server Action
+│   ├── delete-note-button.tsx 软删除 + toast 撤销
 │   ├── note-editor.tsx        Client，自动保存
 │   └── markdown.tsx           渲染
 ├── planner/
@@ -129,7 +133,7 @@ components/
 - 不写 REST API（`/api/export` 除外）。V3 需要给后台任务提供接口时再补。
 - 所有 Prisma 调用集中在 `lib/queries/` 和 `lib/mutations/`，页面和组件里不出现 `prisma.`。
 
-Server Action 签名统一：
+Server Action 签名统一（定义在 `lib/action-result.ts`，配套 `ok()` / `fail()` 两个构造函数）：
 
 ```ts
 type ActionResult<T = void> =

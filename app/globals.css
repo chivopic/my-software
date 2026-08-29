@@ -1,0 +1,143 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 语义色变量：组件里只用这些，不要硬编码颜色值。
+   浅色是默认；深色有两处覆盖——跟随系统（未显式选择时）和 .dark 显式选择。 */
+:root {
+  --background: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #f4f4f5;
+  --surface-subtle: #fafafa;
+  --foreground: #18181b;
+  --muted: #71717a;
+  --border: #e4e4e7;
+  --ring: #6366f1;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-foreground: #ffffff;
+  --danger: #dc2626;
+  --success: #059669;
+
+  --priority-low: #a1a1aa;
+  --priority-medium: #3b82f6;
+  --priority-high: #f59e0b;
+  --priority-urgent: #ef4444;
+
+  --status-inbox: #a1a1aa;
+  --status-todo: #3b82f6;
+  --status-doing: #f59e0b;
+  --status-done: #10b981;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: #09090b;
+    --surface: #18181b;
+    --surface-hover: #27272a;
+    --surface-subtle: #131316;
+    --foreground: #fafafa;
+    --muted: #a1a1aa;
+    --border: #27272a;
+    --ring: #818cf8;
+    --accent: #818cf8;
+    --accent-hover: #a5b4fc;
+    --accent-foreground: #1e1b4b;
+    --danger: #f87171;
+    --success: #34d399;
+
+    --priority-low: #71717a;
+    --priority-medium: #60a5fa;
+    --priority-high: #fbbf24;
+    --priority-urgent: #f87171;
+
+    --status-inbox: #71717a;
+    --status-todo: #60a5fa;
+    --status-doing: #fbbf24;
+    --status-done: #34d399;
+  }
+}
+
+:root.dark {
+  --background: #09090b;
+  --surface: #18181b;
+  --surface-hover: #27272a;
+  --surface-subtle: #131316;
+  --foreground: #fafafa;
+  --muted: #a1a1aa;
+  --border: #27272a;
+  --ring: #818cf8;
+  --accent: #818cf8;
+  --accent-hover: #a5b4fc;
+  --accent-foreground: #1e1b4b;
+  --danger: #f87171;
+  --success: #34d399;
+
+  --priority-low: #71717a;
+  --priority-medium: #60a5fa;
+  --priority-high: #fbbf24;
+  --priority-urgent: #f87171;
+
+  --status-inbox: #71717a;
+  --status-todo: #60a5fa;
+  --status-doing: #fbbf24;
+  --status-done: #34d399;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+
+  --color-priority-low: var(--priority-low);
+  --color-priority-medium: var(--priority-medium);
+  --color-priority-high: var(--priority-high);
+  --color-priority-urgent: var(--priority-urgent);
+
+  --color-status-inbox: var(--status-inbox);
+  --color-status-todo: var(--status-todo);
+  --color-status-doing: var(--status-doing);
+  --color-status-done: var(--status-done);
+
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+:root.light {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 键盘可达性：所有可聚焦元素统一的焦点环 */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}

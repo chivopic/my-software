@@ -44,10 +44,15 @@
 │   ├── current-user.ts         V0 返回固定 local-user
 │   ├── queries/                只读，函数清单见 docs/03 第 4 节
 │   ├── mutations/              写操作
+│   ├── action-result.ts        Server Action 的统一返回形状
 │   ├── validation/             zod schema
-│   └── utils/                  date.ts / cn.ts / markdown.ts
+│   ├── utils/                  date.ts / cn.ts / markdown.ts
+│   └── generated/prisma/       Prisma Client 生成物，不入库、不手改
 ├── prisma/
 │   ├── schema.prisma  seed.ts  migrations/
+├── prisma.config.ts            Prisma 7 的 CLI 配置（连接串、seed 命令）
+├── docker-compose.yml          本地 Postgres
+├── .env.example                DATABASE_URL 模板
 ├── docs/
 └── AGENTS.md
 ```
@@ -56,10 +61,14 @@
 
 **允许（V0 全部依赖，就这些）**
 
+已锁定的版本见 `package.json`（next 16 / react 19 / tailwind 4 / eslint 10 / typescript 5.9 / prisma 7.10）。
+`prisma` 的 npm `latest` 目前指向 8.0.0-rc，**不要跟**，停在 7.10 稳定版。
+TypeScript 停在 5.9 而不是 7.x：生态里的 eslint 插件尚未跟上，等 V1 再评估。
+
 ```text
 next  react  react-dom  typescript
-tailwindcss  postcss  autoprefixer
-prisma  @prisma/client
+tailwindcss  @tailwindcss/postcss     # v4 用 CSS-first 配置，不需要 tailwind.config 和 autoprefixer
+prisma  @prisma/client  @prisma/adapter-pg  pg  @types/pg   # Prisma 7 必须经 driver adapter 连接
 zod
 date-fns
 clsx  tailwind-merge
@@ -68,6 +77,21 @@ eslint  eslint-config-next  prettier  prettier-plugin-tailwindcss
 tsx                      # 跑 seed
 vitest  @testing-library/react   # 见第 6 节
 ```
+
+**Next 16 / Prisma 7 注意**：这两个大版本与多数模型的训练数据差异较大：
+
+- Next 16：`next lint` 已移除，Tailwind v4 是 CSS-first（没有 `tailwind.config.ts`）。
+  写代码前查 `node_modules/next/dist/docs/` 里的对应指南。
+- Prisma 7：`datasource` 里不能写 `url`（移到 `prisma.config.ts`）；`PrismaClient` 必须传
+  driver adapter；generator 用 `prisma-client` 且必须指定 `output`；`prisma db seed` 的命令
+  配在 `prisma.config.ts` 的 `migrations.seed`，不再是 `package.json#prisma`；
+  `migrate reset` 的 `--skip-seed` 已移除；`migrate diff` 的参数改成了 `--from-schema/--to-schema`。
+  `DateTime` 默认落成 `timestamp(3)`，要 `timestamptz` 必须显式写 `@db.Timestamptz(3)`。
+- **`prisma migrate reset` 会被 Prisma 7 的危险操作门禁拦下，需要用户明确同意，不要绕过。**
+  只是想重建迁移文件时用 `prisma migrate diff --from-empty --to-schema prisma/schema.prisma
+  --script -o <路径>`，它不碰数据库；要验证迁移能否干净应用，新建一个库跑 `migrate deploy`。
+
+两者都不要凭记忆写 API。
 
 **明确禁止（V0）**：任何组件库（shadcn/MUI/Radix）、任何状态管理库（redux/zustand/jotai）、
 任何数据请求库（swr/react-query）、任何拖拽库、任何 AI SDK、任何认证库、任何图表库、ORM 以外的查询构建器。
@@ -91,8 +115,8 @@ V0 的交互复杂度撑不起这些抽象，装了以后删不掉。
 每个任务提交前，逐项跑：
 
 ```bash
-pnpm typecheck     # tsc --noEmit
-pnpm lint          # next lint
+pnpm typecheck     # next typegen && tsc --noEmit（typedRoutes 的类型要先生成）
+pnpm lint          # eslint .（Next 16 已移除 next lint）
 pnpm test          # vitest run（存在测试时）
 pnpm build         # next build
 ```
@@ -102,7 +126,9 @@ pnpm build         # next build
 - [ ] 涉及的空状态、加载态、错误态都实现了
 - [ ] 浅色和深色模式都看过
 - [ ] 没有 console 报错、没有 hydration warning
-- [ ] 如果改了 schema：有 migration 文件，`docs/03-data-model.md` 已同步
+      （已知例外：dev 模式下 notFound() 页面会警告 "Encountered a script tag"，
+      来自 layout 里的主题脚本，生产构建无此警告，不用再查）
+- [ ] 如果改了 schema：跑过 `pnpm exec prisma format`、有 migration 文件、`docs/03-data-model.md` 已同步
 
 ## 6. 测试策略
 
@@ -134,6 +160,8 @@ feat(tasks): 四列看板与状态切换
 - 不主动创建 PR，除非被明确要求。
 
 ## 8. V0 任务清单
+
+**进度：V0-01 ~ V0-04 已完成。** 下一个是 V0-05。
 
 按顺序执行。每项标注依赖和验收要点，详细验收标准回查 `docs/01-v0-prd.md` 对应用户故事。
 

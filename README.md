@@ -49,6 +49,35 @@ Prisma + PostgreSQL
 V0 **不引入**：认证、AI 调用、RSS 抓取、后台任务、状态管理库、组件库。
 理由见 [`docs/01-v0-prd.md`](docs/01-v0-prd.md) 的「明确不做」一节。
 
+## 本地开发
+
+```bash
+pnpm install
+cp .env.example .env
+pnpm db:up        # 起本地 Postgres（Docker）
+pnpm db:migrate   # 建表
+pnpm db:seed      # 造 local-user、标签和示例数据
+pnpm dev          # http://localhost:3000
+```
+
+其他脚本：
+
+| 命令 | 作用 |
+| --- | --- |
+| `pnpm build` | 生产构建 |
+| `pnpm typecheck` | `tsc --noEmit` |
+| `pnpm lint` | ESLint（Next 16 已移除 `next lint`） |
+| `pnpm format` | Prettier 写入（Markdown 不参与格式化） |
+| `pnpm test` | Vitest |
+| `pnpm db:up` / `db:down` | 起停本地 Postgres |
+| `pnpm db:migrate` | `prisma migrate dev`，生成并应用迁移 |
+| `pnpm db:seed` | 灌 seed 数据（幂等，可重复跑） |
+| `pnpm db:reset` | 清库重来（会二次确认，数据全丢） |
+| `pnpm db:studio` | Prisma Studio |
+
+数据库是 PostgreSQL 16，本地用 `docker-compose.yml` 起，账号/密码/库名都是 `workbench`。
+Prisma 7 的连接串配在 `prisma.config.ts`（读 `.env` 的 `DATABASE_URL`），不在 schema 里。
+
 ## 文档
 
 | 文档 | 内容 |

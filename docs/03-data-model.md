@@ -12,21 +12,22 @@
 | 主键 | `String @id @default(cuid())` |
 | 时间戳 | 每张业务表都有 `createdAt` / `updatedAt` |
 | 软删除 | 用户可见的内容表有 `deletedAt DateTime?`，查询默认 `where: { deletedAt: null }` |
-| 时刻 vs 日期 | 时刻用 `DateTime`（`timestamptz`，存 UTC）；日期语义字段用 `DateTime @db.Date`（不做时区换算） |
+| 时刻 vs 日期 | 时刻用 `DateTime @db.Timestamptz(3)`（存 UTC）；日期语义字段用 `DateTime @db.Date`（不做时区换算）。Prisma 默认给 `DateTime` 生成的是 `timestamp(3)`（无时区），必须显式加 `@db.Timestamptz(3)` |
 | 命名 | 模型 PascalCase 单数，字段 camelCase，枚举 SCREAMING_SNAKE |
 | 排序 | 需要手工排序的表用 `order Float`，插入取相邻两值中点，避免整表重排 |
 | 归属 | 所有业务表都带 `userId`，即使 V0 只有一个用户 |
+| 连接方式 | Prisma 7：连接串写在 `prisma.config.ts`，不写在 `datasource` 里；客户端用 driver adapter（`@prisma/adapter-pg`）连接，见 `lib/db.ts` |
 
 ## 2. V0 Schema
 
 ```prisma
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ───────────── User ─────────────
@@ -37,8 +38,8 @@ model User {
   email     String?  @unique
   name      String?
   timezone  String   @default("Asia/Shanghai")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   notes    Note[]
   tasks    Task[]
@@ -55,8 +56,8 @@ model Tag {
   name      String
   slug      String
   color     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   notes NoteTag[]
@@ -71,12 +72,12 @@ model Note {
   id         String    @id @default(cuid())
   userId     String
   title      String
-  content    String    @default("")   // Markdown 原文
+  content    String    @default("") // Markdown 原文
   isFavorite Boolean   @default(false)
   isArchived Boolean   @default(false)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  deletedAt  DateTime?
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt  DateTime? @db.Timestamptz(3)
 
   user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   tags NoteTag[]
@@ -120,17 +121,17 @@ model Task {
   status      TaskStatus   @default(INBOX)
   priority    TaskPriority @default(MEDIUM)
 
-  dueDate     DateTime? @db.Date   // 什么时候之前要做完
-  scheduledFor   DateTime? @db.Date // 打算哪天做（Planner 写入）
-  scheduledStart DateTime?          // 时间段起（UTC 时刻）
-  scheduledEnd   DateTime?          // 时间段止
+  dueDate         DateTime? @db.Date // 什么时候之前要做完
+  scheduledFor    DateTime? @db.Date // 打算哪天做（Planner 写入）
+  scheduledStart  DateTime? @db.Timestamptz(3) // 时间段起（UTC 时刻）
+  scheduledEnd    DateTime? @db.Timestamptz(3) // 时间段止
   estimateMinutes Int?
 
-  completedAt DateTime?
-  order       Float     @default(0)  // 同一状态列内的手工排序
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+  completedAt DateTime? @db.Timestamptz(3)
+  order       Float     @default(0) // 同一状态列内的手工排序
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
 
   user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
@@ -162,10 +163,10 @@ model Project {
   name        String
   description String?
   color       String?
-  archivedAt  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  deletedAt   DateTime?
+  archivedAt  DateTime? @db.Timestamptz(3)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(3)
+  deletedAt   DateTime? @db.Timestamptz(3)
 
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   tasks Task[]
@@ -192,6 +193,18 @@ V2 的 Daily Review 要回答「这周我在 AI Infra 上花了多少时间、�
 
 **为什么标签不用字符串数组。**
 `String[]` 写起来快，但改名、统计、加颜色都要全表扫描更新。多两张 join 表换来的是标签变成一等公民。
+
+## 3.5 配置与连接（Prisma 7）
+
+三个文件构成完整链路，改任何一个前先看清楚职责：
+
+| 文件 | 职责 |
+| --- | --- |
+| `prisma.config.ts` | 给 CLI 用：schema 位置、`DATABASE_URL`、migrations 目录、seed 命令。Prisma 7 不再自动读 `.env`，这里用 Node 内建的 `loadEnvFile` 读，不引 dotenv |
+| `lib/db.ts` | 给应用用：`PrismaClient` + `PrismaPg` adapter，开发环境挂 `globalThis` 防热更新连接泄漏 |
+| `lib/current-user.ts` | V0 返回固定的 `local-user`；V1 接认证只改这一个文件 |
+
+本地数据库用 `docker-compose.yml` 起（`pnpm db:up`），账号密码库名都是 `workbench`。
 
 ## 4. 查询清单（V0）
 
@@ -243,3 +256,5 @@ V6  AssistantThread / AssistantMessage
 - 一个 `User`，`id = "local-user"`，`timezone = "Asia/Shanghai"`。
 - 三个 Tag：`AI Infra`、`Algorithms`、`Project`。
 - 若干示例 Task 和 Note（仅在 `NODE_ENV !== "production"`）。
+
+示例数据用固定 id（`seed-task-*` / `seed-note-*`）配合 `upsert`，重复跑 seed 不会堆出重复数据。
