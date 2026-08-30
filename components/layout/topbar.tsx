@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 
 import { titleForPath } from "@/components/layout/nav";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { CaptureButton } from "@/components/capture/capture-dialog";
 import { Button } from "@/components/ui/button";
 
 export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
@@ -33,8 +34,9 @@ export function Topbar({ onOpenMenu }: { onOpenMenu: () => void }) {
 
       <h1 className="text-foreground font-medium">{titleForPath(pathname)}</h1>
 
-      <div className="ml-auto flex items-center gap-1">
+      <div className="ml-auto flex items-center gap-2">
         <ThemeToggle />
+        <CaptureButton />
       </div>
     </header>
   );
