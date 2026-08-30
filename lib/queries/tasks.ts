@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
+import { buildTaskWhere, taskOrderBy, type TaskView } from "@/lib/queries/task-filters";
 import type { TaskStatusValue } from "@/lib/validation/task";
 
 /** Done 列只回溯这么多天，否则看板会被历史任务撑爆。 */
@@ -64,3 +65,26 @@ export async function getTaskBoard(userId: string, tag?: string) {
 
 export type TaskBoard = Awaited<ReturnType<typeof getTaskBoard>>;
 export type BoardTask = TaskBoard[TaskStatusValue][number];
+
+export const TASKS_PAGE_SIZE = 50;
+
+/** 单列列表视图（board 之外的所有视图）。 */
+export async function listTasks(
+  userId: string,
+  { view, tag, today, page = 1 }: { view: TaskView; tag?: string; today: string; page?: number },
+) {
+  const where = buildTaskWhere(userId, { view, tag, today });
+
+  const [tasks, total] = await Promise.all([
+    prisma.task.findMany({
+      where,
+      select: taskSelect,
+      orderBy: taskOrderBy(view),
+      skip: (page - 1) * TASKS_PAGE_SIZE,
+      take: TASKS_PAGE_SIZE,
+    }),
+    prisma.task.count({ where }),
+  ]);
+
+  return { tasks, total, page, pageSize: TASKS_PAGE_SIZE };
+}
