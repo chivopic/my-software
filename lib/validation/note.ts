@@ -10,3 +10,10 @@ export const createNoteSchema = z.object({
 });
 
 export type CreateNoteInput = z.infer<typeof createNoteSchema>;
+
+export const updateNoteSchema = z.object({
+  title: z.string().trim().max(MAX_TITLE_LENGTH, `标题不能超过 ${MAX_TITLE_LENGTH} 个字符`),
+  content: z.string(),
+});
+
+export type UpdateNoteInput = z.infer<typeof updateNoteSchema>;

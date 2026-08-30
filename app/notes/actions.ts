@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { getCurrentUserId } from "@/lib/current-user";
-import { createNote, restoreNote, softDeleteNote } from "@/lib/mutations/notes";
-import { createNoteSchema, noteIdSchema } from "@/lib/validation/note";
+import { createNote, restoreNote, softDeleteNote, updateNote } from "@/lib/mutations/notes";
+import { createNoteSchema, noteIdSchema, updateNoteSchema } from "@/lib/validation/note";
 
 /** 新建一条空笔记并跳到它的详情页。 */
 export async function createNoteAction() {
@@ -20,6 +20,28 @@ export async function createNoteAction() {
   revalidatePath("/notes");
   // redirect 靠抛出特殊异常实现，必须放在 try/catch 之外
   redirect(`/notes/${note.id}`);
+}
+
+export async function updateNoteAction(
+  id: string,
+  input: { title: string; content: string },
+): Promise<ActionResult<{ savedAt: string }>> {
+  const parsedId = noteIdSchema.safeParse(id);
+  if (!parsedId.success) return fail(parsedId.error.issues[0]?.message ?? "参数错误");
+
+  const parsed = updateNoteSchema.safeParse(input);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "内容不合法");
+
+  try {
+    const userId = await getCurrentUserId();
+    const updated = await updateNote(userId, parsedId.data, parsed.data);
+    if (!updated) return fail("笔记不存在或已被删除");
+
+    revalidatePath("/notes");
+    return ok({ savedAt: new Date().toISOString() });
+  } catch {
+    return fail("保存失败，请重试");
+  }
 }
 
 export async function deleteNoteAction(id: string): Promise<ActionResult> {
