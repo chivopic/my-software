@@ -5,7 +5,13 @@ import { redirect } from "next/navigation";
 
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { getCurrentUserId } from "@/lib/current-user";
-import { createNote, restoreNote, softDeleteNote, updateNote } from "@/lib/mutations/notes";
+import {
+  createNote,
+  restoreNote,
+  setNoteFavorite,
+  softDeleteNote,
+  updateNote,
+} from "@/lib/mutations/notes";
 import { setNoteTags } from "@/lib/mutations/tags";
 import { createNoteSchema, noteIdSchema, updateNoteSchema } from "@/lib/validation/note";
 import { tagNamesSchema } from "@/lib/validation/tag";
@@ -63,6 +69,26 @@ export async function setNoteTagsAction(id: string, names: string[]): Promise<Ac
     return ok();
   } catch {
     return fail("保存标签失败，请重试");
+  }
+}
+
+export async function toggleNoteFavoriteAction(
+  id: string,
+  isFavorite: boolean,
+): Promise<ActionResult> {
+  const parsed = noteIdSchema.safeParse(id);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "参数错误");
+
+  try {
+    const userId = await getCurrentUserId();
+    const updated = await setNoteFavorite(userId, parsed.data, isFavorite);
+    if (!updated) return fail("笔记不存在或已被删除");
+
+    revalidatePath("/notes");
+    revalidatePath(`/notes/${parsed.data}`);
+    return ok();
+  } catch {
+    return fail("操作失败，请重试");
   }
 }
 

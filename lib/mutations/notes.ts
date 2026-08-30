@@ -16,6 +16,14 @@ export async function updateNote(userId: string, id: string, input: UpdateNoteIn
   return result.count > 0;
 }
 
+export async function setNoteFavorite(userId: string, id: string, isFavorite: boolean) {
+  const result = await prisma.note.updateMany({
+    where: { id, userId, deletedAt: null },
+    data: { isFavorite },
+  });
+  return result.count > 0;
+}
+
 /** 软删除：只打 deletedAt，列表默认过滤掉，撤销时清空即可。 */
 export async function softDeleteNote(userId: string, id: string) {
   const result = await prisma.note.updateMany({

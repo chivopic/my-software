@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { DeleteNoteButton } from "@/components/notes/delete-note-button";
+import { FavoriteButton } from "@/components/notes/favorite-button";
 import { NoteEditor } from "@/components/notes/note-editor";
 import { NoteTagsEditor } from "@/components/notes/note-tags-editor";
 import { UNTITLED } from "@/components/notes/note-card";
@@ -26,7 +27,10 @@ export default async function NotePage({ params }: { params: Promise<{ id: strin
         <Link href="/notes" className="text-muted hover:text-foreground text-xs">
           ← 全部笔记
         </Link>
-        <DeleteNoteButton noteId={note.id} title={note.title.trim() || UNTITLED} redirectToList />
+        <div className="flex items-center gap-3">
+          <FavoriteButton noteId={note.id} isFavorite={note.isFavorite} />
+          <DeleteNoteButton noteId={note.id} title={note.title.trim() || UNTITLED} redirectToList />
+        </div>
       </div>
 
       <NoteEditor
