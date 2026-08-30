@@ -4,6 +4,10 @@ import { Card, CardHeader } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/current-user";
 import { getDataStats } from "@/lib/queries/export";
 
+// 这一页读的是当前用户的实时数据，不能静态预渲染：
+// 否则构建时会把当时数据库里的内容烤进页面，部署后一直显示旧数据。
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = { title: "Settings · Personal Workbench" };
 
 const APP_VERSION = "V0";
