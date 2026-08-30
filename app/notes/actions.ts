@@ -6,7 +6,9 @@ import { redirect } from "next/navigation";
 import { fail, ok, type ActionResult } from "@/lib/action-result";
 import { getCurrentUserId } from "@/lib/current-user";
 import { createNote, restoreNote, softDeleteNote, updateNote } from "@/lib/mutations/notes";
+import { setNoteTags } from "@/lib/mutations/tags";
 import { createNoteSchema, noteIdSchema, updateNoteSchema } from "@/lib/validation/note";
+import { tagNamesSchema } from "@/lib/validation/tag";
 
 /** 新建一条空笔记并跳到它的详情页。 */
 export async function createNoteAction() {
@@ -41,6 +43,26 @@ export async function updateNoteAction(
     return ok({ savedAt: new Date().toISOString() });
   } catch {
     return fail("保存失败，请重试");
+  }
+}
+
+export async function setNoteTagsAction(id: string, names: string[]): Promise<ActionResult> {
+  const parsedId = noteIdSchema.safeParse(id);
+  if (!parsedId.success) return fail(parsedId.error.issues[0]?.message ?? "参数错误");
+
+  const parsed = tagNamesSchema.safeParse(names);
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "标签不合法");
+
+  try {
+    const userId = await getCurrentUserId();
+    const updated = await setNoteTags(userId, parsedId.data, parsed.data);
+    if (!updated) return fail("笔记不存在或已被删除");
+
+    revalidatePath("/notes");
+    revalidatePath(`/notes/${parsedId.data}`);
+    return ok();
+  } catch {
+    return fail("保存标签失败，请重试");
   }
 }
 

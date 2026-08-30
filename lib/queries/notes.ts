@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { type Prisma } from "@/lib/generated/prisma/client";
 
 export const NOTES_PAGE_SIZE = 50;
 
@@ -13,9 +14,18 @@ const noteListSelect = {
 
 export type NoteListItem = Awaited<ReturnType<typeof listNotes>>["notes"][number];
 
-export async function listNotes(userId: string, { page = 1 }: { page?: number } = {}) {
+export type NoteListFilters = {
+  page?: number;
+  tag?: string;
+};
+
+export async function listNotes(userId: string, { page = 1, tag }: NoteListFilters = {}) {
   const skip = (page - 1) * NOTES_PAGE_SIZE;
-  const where = { userId, deletedAt: null };
+  const where: Prisma.NoteWhereInput = {
+    userId,
+    deletedAt: null,
+    ...(tag ? { tags: { some: { tag: { slug: tag } } } } : {}),
+  };
 
   const [notes, total] = await Promise.all([
     prisma.note.findMany({
