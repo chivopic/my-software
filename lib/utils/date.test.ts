@@ -7,8 +7,11 @@ import {
   formatDueDate,
   isOverdue,
   parseDateInput,
+  formatTime,
+  hourInTimeZone,
   toDateInputValue,
   todayInTimeZone,
+  zonedHourToUtc,
 } from "@/lib/utils/date";
 
 const SHANGHAI = "Asia/Shanghai";
@@ -123,5 +126,46 @@ describe("addDays", () => {
     expect(addDays("2026-08-28", 7)).toBe("2026-09-04");
     expect(addDays("2026-12-31", 1)).toBe("2027-01-01");
     expect(addDays("2026-08-28", -1)).toBe("2026-08-27");
+  });
+});
+
+describe("zonedHourToUtc / hourInTimeZone", () => {
+  it("上海 UTC+8：当天 14:00 存成 UTC 06:00", () => {
+    const at = zonedHourToUtc("2026-08-30", 14, "Asia/Shanghai");
+    expect(at.toISOString()).toBe("2026-08-30T06:00:00.000Z");
+    expect(hourInTimeZone(at, "Asia/Shanghai")).toBe(14);
+  });
+
+  it("早于时区偏移的小时会落到前一天的 UTC", () => {
+    const at = zonedHourToUtc("2026-08-30", 6, "Asia/Shanghai");
+    expect(at.toISOString()).toBe("2026-08-29T22:00:00.000Z");
+  });
+
+  it("UTC 时区原样", () => {
+    expect(zonedHourToUtc("2026-08-30", 9, "UTC").toISOString()).toBe("2026-08-30T09:00:00.000Z");
+  });
+
+  it("夏令时：纽约夏季是 UTC-4，冬季是 UTC-5", () => {
+    expect(zonedHourToUtc("2026-07-01", 9, "America/New_York").toISOString()).toBe(
+      "2026-07-01T13:00:00.000Z",
+    );
+    expect(zonedHourToUtc("2026-12-01", 9, "America/New_York").toISOString()).toBe(
+      "2026-12-01T14:00:00.000Z",
+    );
+  });
+
+  it("往返一致：任意小时转过去再读回来还是同一个小时", () => {
+    for (const hour of [0, 6, 13, 23]) {
+      const at = zonedHourToUtc("2026-03-08", hour, "America/New_York");
+      expect(hourInTimeZone(at, "America/New_York")).toBe(hour);
+    }
+  });
+});
+
+describe("formatTime", () => {
+  it("按时区显示 HH:mm", () => {
+    const at = new Date("2026-08-30T06:00:00Z");
+    expect(formatTime(at, "Asia/Shanghai")).toBe("14:00");
+    expect(formatTime(at, "UTC")).toBe("06:00");
   });
 });

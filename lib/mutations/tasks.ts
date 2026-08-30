@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { ensureTags } from "@/lib/mutations/tags";
-import { parseDateInput } from "@/lib/utils/date";
+import { parseDateInput, zonedHourToUtc } from "@/lib/utils/date";
 import type { CreateTaskInput, TaskStatusValue, UpdateTaskInput } from "@/lib/validation/task";
 
 /** 新任务排在同列最前面：取当前最小 order 再减 1。 */
@@ -106,6 +106,39 @@ export async function restoreTask(userId: string, id: string) {
   const result = await prisma.task.updateMany({
     where: { id, userId, deletedAt: { not: null } },
     data: { deletedAt: null },
+  });
+  return result.count > 0;
+}
+
+/** 把任务排到某天的某个整点，默认占一小时。 */
+export async function scheduleTask(
+  userId: string,
+  id: string,
+  {
+    day,
+    hour,
+    timeZone,
+    hours = 1,
+  }: { day: string; hour: number; timeZone: string; hours?: number },
+) {
+  const start = zonedHourToUtc(day, hour, timeZone);
+  const end = new Date(start.getTime() + hours * 60 * 60 * 1000);
+
+  const result = await prisma.task.updateMany({
+    where: { id, userId, deletedAt: null },
+    data: {
+      scheduledFor: new Date(`${day}T00:00:00.000Z`),
+      scheduledStart: start,
+      scheduledEnd: end,
+    },
+  });
+  return result.count > 0;
+}
+
+export async function unscheduleTask(userId: string, id: string) {
+  const result = await prisma.task.updateMany({
+    where: { id, userId, deletedAt: null },
+    data: { scheduledFor: null, scheduledStart: null, scheduledEnd: null },
   });
   return result.count > 0;
 }
