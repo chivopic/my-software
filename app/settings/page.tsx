@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Card, CardHeader } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/current-user";
 import { getDataStats } from "@/lib/queries/export";
+import { formatDateTime } from "@/lib/utils/date";
 
 // 这一页读的是当前用户的实时数据，不能静态预渲染：
 // 否则构建时会把当时数据库里的内容烤进页面，部署后一直显示旧数据。
@@ -24,6 +25,12 @@ export default async function SettingsPage() {
     { label: "标签", value: stats.tags },
     { label: "项目", value: stats.projects },
     { label: "已删除（笔记 / 任务）", value: `${stats.notesDeleted} / ${stats.tasksDeleted}` },
+    {
+      label: "行为日志",
+      value: stats.trackingSince
+        ? `${stats.activities} 条 · 自 ${formatDateTime(stats.trackingSince, user.timezone)}`
+        : `${stats.activities} 条`,
+    },
   ];
 
   return (
@@ -47,7 +54,7 @@ export default async function SettingsPage() {
         <CardHeader title="备份" />
         <div className="border-border flex flex-col gap-3 border-t px-4 py-4">
           <p className="text-muted text-xs">
-            导出全部笔记、任务、标签和项目（含已删除的），JSON 格式。 这是 V0
+            导出全部笔记、任务、标签、项目和行为日志（含已删除的），JSON 格式。 这是 V0
             唯一的备份手段，换机器或清库前记得先导一份。
           </p>
           <a

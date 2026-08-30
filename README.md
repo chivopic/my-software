@@ -32,7 +32,7 @@
 | --- | --- | --- |
 | **V0** | Dashboard + Notes + Tasks + 最小 Planner + Quick Capture | ✅ 完成 |
 | V1 | Projects、完整 Planner（周视图、Goals） | 未开始 |
-| V2 | Daily Review + 统计 | 未开始 |
+| V2 | Daily Review + 统计 | 未开始（行为日志已在 V0 开始记录） |
 | V3 | Daily Brief（信息采集 pipeline） | 未开始 |
 | V4 | AI Notes / AI Tasks（摘要、拆解、自动分类） | 未开始 |
 | V5 | 语义搜索 / Ask My Notes | 未开始 |
@@ -58,6 +58,9 @@ V0 **不引入**：认证、AI 调用、RSS 抓取、后台任务、状态管理
 - **Planner**：单日时间轴 06:00–24:00，把任务排到具体时段，未排期抽屉
 - **Quick Capture**：任意页面 `⌘K`，一行输入存成任务或笔记
 - **Settings**：数据统计 + 全量 JSON 导出（V0 唯一的备份手段）
+
+后台还会默默记录行为日志（创建、完成、排期、删除…），V0 不做界面，
+是给 V2 的统计与复盘攒原始数据用的——这类历史一旦没记就补不回来。
 
 深浅色主题跟随系统，也可手动切换。全站键盘可达。
 

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { logActivity } from "@/lib/mutations/activity";
 import { ensureTags } from "@/lib/mutations/tags";
 import { parseDateInput, zonedHourToUtc } from "@/lib/utils/date";
 import type { CreateTaskInput, TaskStatusValue, UpdateTaskInput } from "@/lib/validation/task";
@@ -16,7 +17,7 @@ async function nextOrder(userId: string, status: TaskStatusValue): Promise<numbe
 export async function createTask(userId: string, input: CreateTaskInput) {
   const tagIds = await ensureTags(userId, input.tags);
 
-  return prisma.task.create({
+  const task = await prisma.task.create({
     data: {
       userId,
       title: input.title,
@@ -30,6 +31,17 @@ export async function createTask(userId: string, input: CreateTaskInput) {
     },
     select: { id: true },
   });
+
+  await logActivity({
+    userId,
+    entityType: "TASK",
+    entityId: task.id,
+    action: "CREATED",
+    summary: input.title,
+    metadata: { status: input.status, priority: input.priority },
+  });
+
+  return task;
 }
 
 export async function updateTask(userId: string, id: string, input: UpdateTaskInput) {
@@ -60,6 +72,15 @@ export async function updateTask(userId: string, id: string, input: UpdateTaskIn
     }),
   ]);
 
+  await logActivity({
+    userId,
+    entityType: "TASK",
+    entityId: id,
+    action: input.status === "DONE" && existing.status !== "DONE" ? "COMPLETED" : "UPDATED",
+    summary: input.title,
+    metadata: { status: input.status, priority: input.priority },
+  });
+
   return true;
 }
 
@@ -84,22 +105,44 @@ export async function setTaskStatus(userId: string, id: string, status: TaskStat
   });
   if (!existing) return false;
 
-  await prisma.task.update({
+  const task = await prisma.task.update({
     where: { id },
     data: {
       status,
       completedAt: completedAtFor(status, existing.status, existing.completedAt),
     },
+    select: { title: true },
+  });
+
+  await logActivity({
+    userId,
+    entityType: "TASK",
+    entityId: id,
+    // 完成单独记一个 action：V2 统计「这周完成了多少」时不用再解析 metadata
+    action: status === "DONE" && existing.status !== "DONE" ? "COMPLETED" : "STATUS_CHANGED",
+    summary: task.title,
+    metadata: { from: existing.status, to: status },
   });
   return true;
 }
 
 export async function softDeleteTask(userId: string, id: string) {
-  const result = await prisma.task.updateMany({
+  const task = await prisma.task.findFirst({
     where: { id, userId, deletedAt: null },
-    data: { deletedAt: new Date() },
+    select: { title: true, status: true },
   });
-  return result.count > 0;
+  if (!task) return false;
+
+  await prisma.task.update({ where: { id }, data: { deletedAt: new Date() } });
+  await logActivity({
+    userId,
+    entityType: "TASK",
+    entityId: id,
+    action: "DELETED",
+    summary: task.title,
+    metadata: { status: task.status },
+  });
+  return true;
 }
 
 export async function restoreTask(userId: string, id: string) {
@@ -107,7 +150,10 @@ export async function restoreTask(userId: string, id: string) {
     where: { id, userId, deletedAt: { not: null } },
     data: { deletedAt: null },
   });
-  return result.count > 0;
+  if (result.count === 0) return false;
+
+  await logActivity({ userId, entityType: "TASK", entityId: id, action: "RESTORED" });
+  return true;
 }
 
 /** 把任务排到某天的某个整点，默认占一小时。 */
@@ -132,7 +178,17 @@ export async function scheduleTask(
       scheduledEnd: end,
     },
   });
-  return result.count > 0;
+  if (result.count === 0) return false;
+
+  // 记下计划投入多少时间：V2 算「计划 vs 实际」时要用
+  await logActivity({
+    userId,
+    entityType: "TASK",
+    entityId: id,
+    action: "SCHEDULED",
+    metadata: { day, hour, hours },
+  });
+  return true;
 }
 
 export async function unscheduleTask(userId: string, id: string) {
@@ -140,5 +196,8 @@ export async function unscheduleTask(userId: string, id: string) {
     where: { id, userId, deletedAt: null },
     data: { scheduledFor: null, scheduledStart: null, scheduledEnd: null },
   });
-  return result.count > 0;
+  if (result.count === 0) return false;
+
+  await logActivity({ userId, entityType: "TASK", entityId: id, action: "UNSCHEDULED" });
+  return true;
 }

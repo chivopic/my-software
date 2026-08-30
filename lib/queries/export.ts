@@ -4,19 +4,46 @@ import { prisma } from "@/lib/db";
  * /settings 的数据概览。软删除的单独计数，方便判断「回收站」里还有多少东西。
  */
 export async function getDataStats(userId: string) {
-  const [notes, notesDeleted, tasks, tasksDeleted, tags, projects, scheduled, completed] =
-    await Promise.all([
-      prisma.note.count({ where: { userId, deletedAt: null } }),
-      prisma.note.count({ where: { userId, deletedAt: { not: null } } }),
-      prisma.task.count({ where: { userId, deletedAt: null } }),
-      prisma.task.count({ where: { userId, deletedAt: { not: null } } }),
-      prisma.tag.count({ where: { userId } }),
-      prisma.project.count({ where: { userId, deletedAt: null } }),
-      prisma.task.count({ where: { userId, deletedAt: null, scheduledFor: { not: null } } }),
-      prisma.task.count({ where: { userId, deletedAt: null, status: "DONE" } }),
-    ]);
+  const [
+    notes,
+    notesDeleted,
+    tasks,
+    tasksDeleted,
+    tags,
+    projects,
+    scheduled,
+    completed,
+    activities,
+    firstActivity,
+  ] = await Promise.all([
+    prisma.note.count({ where: { userId, deletedAt: null } }),
+    prisma.note.count({ where: { userId, deletedAt: { not: null } } }),
+    prisma.task.count({ where: { userId, deletedAt: null } }),
+    prisma.task.count({ where: { userId, deletedAt: { not: null } } }),
+    prisma.tag.count({ where: { userId } }),
+    prisma.project.count({ where: { userId, deletedAt: null } }),
+    prisma.task.count({ where: { userId, deletedAt: null, scheduledFor: { not: null } } }),
+    prisma.task.count({ where: { userId, deletedAt: null, status: "DONE" } }),
+    prisma.activityLog.count({ where: { userId } }),
+    prisma.activityLog.findFirst({
+      where: { userId },
+      orderBy: { at: "asc" },
+      select: { at: true },
+    }),
+  ]);
 
-  return { notes, notesDeleted, tasks, tasksDeleted, tags, projects, scheduled, completed };
+  return {
+    notes,
+    notesDeleted,
+    tasks,
+    tasksDeleted,
+    tags,
+    projects,
+    scheduled,
+    completed,
+    activities,
+    trackingSince: firstActivity?.at ?? null,
+  };
 }
 
 /**
@@ -24,7 +51,7 @@ export async function getDataStats(userId: string) {
  * 导出的内容要足以重建整个库。
  */
 export async function exportAll(userId: string) {
-  const [user, tags, projects, notes, tasks] = await Promise.all([
+  const [user, tags, projects, notes, tasks, activities] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, email: true, name: true, timezone: true, createdAt: true },
@@ -41,6 +68,8 @@ export async function exportAll(userId: string) {
       include: { tags: { select: { tag: { select: { slug: true } } } } },
       orderBy: { createdAt: "asc" },
     }),
+    // 行为日志也要导出：备份丢了历史，V2 的统计就没有原始数据了
+    prisma.activityLog.findMany({ where: { userId }, orderBy: { at: "asc" } }),
   ]);
 
   return {
@@ -57,5 +86,6 @@ export async function exportAll(userId: string) {
       ...task,
       tags: taskTags.map(({ tag }) => tag.slug),
     })),
+    activities,
   };
 }
