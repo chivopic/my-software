@@ -106,6 +106,10 @@ V0 的交互复杂度撑不起这些抽象，装了以后删不掉。
 - **禁止在页面/组件里直接调 `prisma`**，一律经 `lib/queries` / `lib/mutations`。
 - **日期**：一律用 `date-fns`，禁止手写日期运算。「今天」由 `lib/utils/date.ts` 的 `today(userTimezone)` 统一给出。
 - **样式**：只用 Tailwind 原子类，不写 `.module.css`。类名合并用 `cn()`。颜色只用 `globals.css` 里的语义变量，不硬编码十六进制。
+- **类型导入必须用 `import type { X }`，不能用 `import { type X }`**。开了
+  `verbatimModuleSyntax` 后内联写法仍会生成运行时 import，客户端组件从 `lib/queries`
+  只取类型时会把 `pg` 打进浏览器包，页面 500。ESLint 的 `consistent-type-imports`
+  已配成 `separate-type-imports`。
 - **命名**：文件 kebab-case，组件 PascalCase，函数 camelCase，布尔量以 `is/has/should` 开头。
 - **注释**：只在「为什么」不显然时写。不要给自解释的代码加注释，不要写变更日志式注释。
 - **错误处理**：query 层不吞异常；action 层捕获并转成 `ActionResult`；页面级用 `error.tsx` 兜底。
@@ -161,7 +165,7 @@ feat(tasks): 四列看板与状态切换
 
 ## 8. V0 任务清单
 
-**进度：V0-01 ~ V0-07 已完成。** 下一个是 V0-08。
+**进度：V0-01 ~ V0-08 已完成。** 下一个是 V0-09。
 
 按顺序执行。每项标注依赖和验收要点，详细验收标准回查 `docs/01-v0-prd.md` 对应用户故事。
 

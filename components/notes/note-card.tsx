@@ -3,7 +3,7 @@ import Link from "next/link";
 import { DeleteNoteButton } from "@/components/notes/delete-note-button";
 import { FavoriteButton } from "@/components/notes/favorite-button";
 import { Badge } from "@/components/ui/badge";
-import { type NoteListItem } from "@/lib/queries/notes";
+import type { NoteListItem } from "@/lib/queries/notes";
 import { excerpt, formatDateTime } from "@/lib/utils/date";
 
 export const UNTITLED = "无标题";

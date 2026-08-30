@@ -1,4 +1,4 @@
-import { type SelectHTMLAttributes } from "react";
+import type { SelectHTMLAttributes } from "react";
 
 import { fieldClassName } from "@/components/ui/input";
 import { cn } from "@/lib/utils/cn";

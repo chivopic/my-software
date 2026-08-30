@@ -1,4 +1,4 @@
-import { type TextareaHTMLAttributes } from "react";
+import type { TextareaHTMLAttributes } from "react";
 
 import { fieldClassName } from "@/components/ui/input";
 import { cn } from "@/lib/utils/cn";

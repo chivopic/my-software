@@ -1,5 +1,5 @@
-import { type Route } from "next";
-import { type SVGProps } from "react";
+import type { Route } from "next";
+import type { SVGProps } from "react";
 
 function Icon(props: SVGProps<SVGSVGElement>) {
   return (

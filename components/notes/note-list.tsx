@@ -1,5 +1,5 @@
 import { NoteCard } from "@/components/notes/note-card";
-import { type NoteListItem } from "@/lib/queries/notes";
+import type { NoteListItem } from "@/lib/queries/notes";
 
 export function NoteList({ notes, timeZone }: { notes: NoteListItem[]; timeZone: string }) {
   return (

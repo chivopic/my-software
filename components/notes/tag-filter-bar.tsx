@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { type TagWithCount } from "@/lib/queries/tags";
+import type { TagWithCount } from "@/lib/queries/tags";
 import { cn } from "@/lib/utils/cn";
 
 export function TagFilterBar({ tags, activeSlug }: { tags: TagWithCount[]; activeSlug?: string }) {

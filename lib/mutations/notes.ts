@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { type CreateNoteInput, type UpdateNoteInput } from "@/lib/validation/note";
+import type { CreateNoteInput, UpdateNoteInput } from "@/lib/validation/note";
 
 export async function createNote(userId: string, input: CreateNoteInput) {
   return prisma.note.create({
