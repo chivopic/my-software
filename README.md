@@ -93,6 +93,11 @@ pnpm dev          # http://localhost:3000
 数据库是 PostgreSQL 16，本地用 `docker-compose.yml` 起，账号/密码/库名都是 `workbench`。
 Prisma 7 的连接串配在 `prisma.config.ts`（读 `.env` 的 `DATABASE_URL`），不在 schema 里。
 
+## 部署
+
+见 [docs/04-deployment.md](docs/04-deployment.md)。部到公网前务必设 `APP_PASSWORD`——
+V0 没有认证，不设的话任何拿到网址的人都能读写你的数据。
+
 ## 变更记录
 
 见 [CHANGELOG.md](CHANGELOG.md)。
@@ -104,4 +109,5 @@ Prisma 7 的连接串配在 `prisma.config.ts`（读 `.env` 的 `DATABASE_URL`�
 | [docs/01-v0-prd.md](docs/01-v0-prd.md) | V0 PRD：范围、用户故事、验收标准 |
 | [docs/02-information-architecture.md](docs/02-information-architecture.md) | 页面结构、路由、布局、交互规范 |
 | [docs/03-data-model.md](docs/03-data-model.md) | 数据模型、Prisma schema、演进策略 |
+| [docs/04-deployment.md](docs/04-deployment.md) | 部署到 Vercel 的完整步骤 |
 | [AGENTS.md](AGENTS.md) | Codex 执行规范与 V0 任务清单 |
