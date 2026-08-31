@@ -57,15 +57,16 @@ V0 没有认证系统。部署到公网后，任何拿到网址的人都能读�
 ## 4. 在 Vercel 上导入
 
 1. 打开 https://vercel.com/new，选 `chivopic/my-software`
-2. Framework Preset 会自动识别成 Next.js，**不要改任何构建命令**
-3. 展开 Environment Variables，加两个：
+2. **Root Directory 一定要设成 `personal-workbench`**（仓库现在是多软件 monorepo，本项目不在仓库根目录了；已有的 Vercel 项目也要去 Settings → General → Root Directory 补设一次，否则构建会在仓库根找不到 `package.json`）
+3. Framework Preset 会自动识别成 Next.js，**不要改任何构建命令**
+4. 展开 Environment Variables，加两个：
 
 | Name | Value | 说明 |
 | --- | --- | --- |
 | `DATABASE_URL` | Neon 的连接串（推荐 pooled） | 三个环境都勾上 |
 | `APP_PASSWORD` | 你想的密码 | 三个环境都勾上 |
 
-4. 点 Deploy，等 1–2 分钟
+5. 点 Deploy，等 1–2 分钟
 
 ## 5. 验收
 

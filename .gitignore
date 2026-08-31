@@ -1,23 +1,5 @@
-# dependencies
-node_modules/
-.pnp
-.pnp.js
-
-# build
-.next/
-out/
-build/
-*.tsbuildinfo
-
-# env
-.env
-.env.local
-.env.*.local
-
-# misc
+# generic, applies repo-wide; each project keeps its own more specific .gitignore
 .DS_Store
 *.log
-coverage/
-
-# prisma generated client
-lib/generated/
+.vscode/
+.idea/
