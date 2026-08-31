@@ -9,6 +9,10 @@ import { getPlannerDay, getUnscheduledTasks } from "@/lib/queries/planner";
 import { addDays, hourInTimeZone, todayInTimeZone } from "@/lib/utils/date";
 import { daySchema } from "@/lib/validation/planner";
 
+// 读当前用户的实时数据，必须按需渲染：否则 next build 会在构建时连数据库，
+// 构建环境（比如 Vercel）通常没有数据库，部署会直接失败。
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = { title: "Planner · Personal Workbench" };
 
 export default async function PlannerPage({

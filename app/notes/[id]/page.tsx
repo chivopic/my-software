@@ -12,6 +12,10 @@ import { getNote } from "@/lib/queries/notes";
 import { listTags } from "@/lib/queries/tags";
 import { formatDateTime } from "@/lib/utils/date";
 
+// 读当前用户的实时数据，必须按需渲染：否则 next build 会在构建时连数据库，
+// 构建环境（比如 Vercel）通常没有数据库，部署会直接失败。
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = { title: "Note · Personal Workbench" };
 
 export default async function NotePage({ params }: { params: Promise<{ id: string }> }) {

@@ -11,6 +11,10 @@ import { listNotes, NOTES_PAGE_SIZE } from "@/lib/queries/notes";
 import { listTags } from "@/lib/queries/tags";
 import { cn } from "@/lib/utils/cn";
 
+// 读当前用户的实时数据，必须按需渲染：否则 next build 会在构建时连数据库，
+// 构建环境（比如 Vercel）通常没有数据库，部署会直接失败。
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = { title: "Notes · Personal Workbench" };
 
 function parsePage(value: string | undefined): number {

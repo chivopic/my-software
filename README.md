@@ -93,6 +93,10 @@ pnpm dev          # http://localhost:3000
 数据库是 PostgreSQL 16，本地用 `docker-compose.yml` 起，账号/密码/库名都是 `workbench`。
 Prisma 7 的连接串配在 `prisma.config.ts`（读 `.env` 的 `DATABASE_URL`），不在 schema 里。
 
+## 变更记录
+
+见 [CHANGELOG.md](CHANGELOG.md)。
+
 ## 文档
 
 | 文档 | 内容 |
