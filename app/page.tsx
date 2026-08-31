@@ -1,33 +1,47 @@
 import type { Metadata } from "next";
 
-import { Card, CardHeader } from "@/components/ui/card";
+import { DailyBriefPlaceholder } from "@/components/dashboard/daily-brief-placeholder";
+import { Greeting } from "@/components/dashboard/greeting";
+import { RecentNotes } from "@/components/dashboard/recent-notes";
+import { StatRow } from "@/components/dashboard/stat-row";
+import { TodayFocus } from "@/components/dashboard/today-focus";
+import { TodaySchedule } from "@/components/dashboard/today-schedule";
+import { getCurrentUser } from "@/lib/current-user";
+import {
+  getDashboardStats,
+  getRecentNotes,
+  getTodayFocus,
+  getTodaySchedule,
+} from "@/lib/queries/dashboard";
+import { todayInTimeZone } from "@/lib/utils/date";
+
+// 这一页读的是当前用户的实时数据，不能静态预渲染：
+// 否则构建时会把当时数据库里的内容烤进页面，部署后一直显示旧数据。
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Dashboard · Personal Workbench" };
 
-const SECTIONS = [
-  { title: "Today's Focus", note: "今天到期或已排期的未完成任务", task: "V0-12" },
-  { title: "Today's Schedule", note: "今天已排期任务的时间列表", task: "V0-12" },
-  { title: "Recent Notes", note: "最近编辑的 5 条笔记", task: "V0-12" },
-  { title: "Daily Brief", note: "每日信息摘要", task: "V3" },
-];
+export default async function DashboardPage() {
+  const user = await getCurrentUser();
+  const today = todayInTimeZone(user.timezone);
 
-export default function DashboardPage() {
+  const [stats, focus, schedule, notes] = await Promise.all([
+    getDashboardStats(user.id, today),
+    getTodayFocus(user.id, today),
+    getTodaySchedule(user.id, today),
+    getRecentNotes(user.id),
+  ]);
+
   return (
-    <div className="flex flex-col gap-6">
-      <p className="text-muted">
-        骨架已就位。Dashboard 的内容依赖 Notes、Tasks 和 Planner 的数据，在 V0-12 一起落地。
-      </p>
+    <div className="flex flex-col gap-5">
+      <Greeting timeZone={user.timezone} today={today} />
+      <StatRow stats={stats} />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {SECTIONS.map((section) => (
-          <Card key={section.title}>
-            <CardHeader
-              title={section.title}
-              action={<span className="text-muted font-mono text-xs">{section.task}</span>}
-            />
-            <p className="text-muted border-border border-t px-4 py-3">{section.note}</p>
-          </Card>
-        ))}
+      <div className="grid gap-4 xl:grid-cols-2">
+        <TodayFocus tasks={focus} today={today} />
+        <TodaySchedule tasks={schedule} timeZone={user.timezone} />
+        <RecentNotes notes={notes} timeZone={user.timezone} />
+        <DailyBriefPlaceholder />
       </div>
     </div>
   );

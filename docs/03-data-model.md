@@ -41,10 +41,11 @@ model User {
   createdAt DateTime @default(now()) @db.Timestamptz(3)
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
-  notes    Note[]
-  tasks    Task[]
-  projects Project[]
-  tags     Tag[]
+  notes      Note[]
+  tasks      Task[]
+  projects   Project[]
+  tags       Tag[]
+  activities ActivityLog[]
 }
 
 // ───────────── Tag ─────────────
@@ -173,6 +174,44 @@ model Project {
 
   @@index([userId, deletedAt])
 }
+
+// ───────────── ActivityLog ─────────────
+// V2 的统计要回答「这周完成了多少任务、写了几条笔记、时间花在哪个标签上」，
+// 这些都依赖历史行为，而历史一旦没记就补不回来。V0 先把事件记下来，不做界面。
+//
+// summary 存的是当时的标题快照：条目后来被改名或删除后，日志仍然可读。
+enum ActivityEntityType {
+  NOTE
+  TASK
+}
+
+enum ActivityAction {
+  CREATED
+  UPDATED
+  DELETED
+  RESTORED
+  STATUS_CHANGED
+  COMPLETED
+  SCHEDULED
+  UNSCHEDULED
+}
+
+model ActivityLog {
+  id         String             @id @default(cuid())
+  userId     String
+  entityType ActivityEntityType
+  entityId   String
+  action     ActivityAction
+  summary    String?
+  metadata   Json?
+  at         DateTime           @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, at(sort: Desc)])
+  @@index([userId, entityType, entityId])
+  @@index([userId, action, at])
+}
 ```
 
 ## 3. 关键设计决定
@@ -221,7 +260,8 @@ Codex 实现 `lib/queries/` 时按这个清单来，不要临时发明查询：
 | `getUnscheduledTasks(userId)` | `status ∈ {TODO, DOING}` 且 `scheduledFor` 为空 |
 | `getPlannerDay(userId, date)` | 某天全部已排期任务 |
 | `listTags(userId)` | 带 note/task 计数 |
-| `exportAll(userId)` | `/settings` 导出用的全量 JSON |
+| `exportAll(userId)` | `/settings` 导出用的全量 JSON（含行为日志） |
+| `logActivity(...)` | 写行为日志，见 `lib/mutations/activity.ts` |
 
 ## 5. 演进策略（V1–V6 预留）
 
@@ -230,7 +270,7 @@ Codex 实现 `lib/queries/` 时按这个清单来，不要临时发明查询：
 ```text
 V1  Project UI 上线；PlanBlock（task 拆多段执行）；Goal（季度/月度目标）
 V2  DailyReview  { date, focusMinutes, tasksCompleted, notesCreated, reflection }
-    ActivityLog  { entityType, entityId, action, at }  ← 统计的原始数据来源
+    （ActivityLog 已在 V0 建好，见上面的 schema）
 V3  Source          { type: RSS|API|HN|ARXIV, url, enabled, lastFetchedAt }
     InformationItem { sourceId, title, url, publishedAt, rawContent, summary, score, dedupHash }
     DailyBrief      { date, sections Json, signal String }
@@ -247,8 +287,16 @@ V6  AssistantThread / AssistantMessage
 2. `Task.projectId` 现在就存在（V1 上 Project UI 不迁移）。
 3. Postgres 而不是 SQLite（V5 的 pgvector、V3 的 JSON 字段都依赖它）。
 
-**ActivityLog 的注意点**：V2 的统计需要历史行为，而历史一旦没记就补不回来。
-如果 V0 收尾时还有余力，优先加的**不是**新功能，而是这张日志表——它现在几乎零成本，将来无法补录。
+**ActivityLog 已在 V0 落地**，理由就是这条：V2 的统计需要历史行为，而历史一旦没记就补不回来，
+现在几乎零成本，将来无法补录。V0 只写不读，界面留到 V2。
+
+写入约定：
+- 记录点在 `lib/mutations/`，不在 action 层——这样任何调用方（包括 Quick Capture）都会被记上
+- `logActivity` 内部吞异常：日志是副产物，写失败不该让用户的删除、排期这些正经操作跟着失败，
+  失败会打到服务端日志
+- `summary` 存标题快照，条目后来改名或删除后日志仍然可读
+- 完成单独记 `COMPLETED` 而不是混在 `STATUS_CHANGED` 里，V2 统计「这周完成多少」不用解析 metadata
+- 导出会带上全部日志，否则备份丢了历史等于白记
 
 ## 6. Seed 数据
 

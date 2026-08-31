@@ -1,8 +1,9 @@
 import Link from "next/link";
 
 import { DeleteNoteButton } from "@/components/notes/delete-note-button";
+import { FavoriteButton } from "@/components/notes/favorite-button";
 import { Badge } from "@/components/ui/badge";
-import { type NoteListItem } from "@/lib/queries/notes";
+import type { NoteListItem } from "@/lib/queries/notes";
 import { excerpt, formatDateTime } from "@/lib/utils/date";
 
 export const UNTITLED = "无标题";
@@ -13,12 +14,10 @@ export function NoteCard({ note, timeZone }: { note: NoteListItem; timeZone: str
 
   return (
     <li className="border-border hover:bg-surface-hover group border-b transition-colors last:border-b-0">
-      <div className="flex items-start gap-4 px-4 py-3">
+      <div className="flex items-start gap-3 px-4 py-3">
+        <FavoriteButton noteId={note.id} isFavorite={note.isFavorite} className="mt-0.5" />
         <Link href={`/notes/${note.id}`} className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="text-foreground truncate font-medium">{title}</h3>
-            {note.isFavorite ? <span aria-label="已收藏">★</span> : null}
-          </div>
+          <h3 className="text-foreground truncate font-medium">{title}</h3>
           {summary ? <p className="text-muted mt-0.5 line-clamp-2">{summary}</p> : null}
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {note.tags.map(({ tag }) => (
