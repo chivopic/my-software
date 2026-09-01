@@ -1,4 +1,4 @@
-# test1
+# Today Workspace
 
 一个克制、本地优先、手机端优先的个人工作台 PWA。第一版只解决三件事：快速记录、查看今天、完成任务。
 
@@ -27,7 +27,7 @@
 这是零构建依赖的静态项目。Service Worker 不能正确工作在 `file://` 协议下，所以请用任意静态服务器启动：
 
 ```bash
-cd test1
+cd today-workspace
 python -m http.server 4173
 ```
 
@@ -44,7 +44,7 @@ http://localhost:4173
 如果使用 Vercel，项目 Root Directory 设置为：
 
 ```text
-test1
+today-workspace
 ```
 
 ## 数据策略
