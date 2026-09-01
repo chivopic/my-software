@@ -2,6 +2,8 @@
 
 一个克制、本地优先、手机端优先的个人工作台 PWA。第一版只解决三件事：快速记录、查看今天、完成任务。
 
+线上地址：<https://today-workspace.vercel.app>
+
 ## 当前功能
 
 - `今天 / 记录 / 任务` 三入口底部导航
@@ -12,7 +14,8 @@
 - Service Worker 应用壳离线缓存
 - 深色模式
 - PWA manifest，可作为独立应用打开
-- Lucide 通用图标，不自造功能图标语义
+- 192×192 / 512×512 PNG 安装图标，并保留 SVG 图标
+- Lucide 通用图标；首次在线安装后会尽量预缓存图标库供后续离线使用
 
 ## 设计原则
 
@@ -39,7 +42,9 @@ http://localhost:4173
 
 ## 部署
 
-可以直接部署到 Vercel、Netlify、Cloudflare Pages、GitHub Pages 或任意静态托管。
+当前生产环境部署在 Vercel：<https://today-workspace.vercel.app>
+
+也可以部署到 Netlify、Cloudflare Pages、GitHub Pages 或任意静态托管。
 
 如果使用 Vercel，项目 Root Directory 设置为：
 
