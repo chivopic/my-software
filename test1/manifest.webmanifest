@@ -1,0 +1,19 @@
+{
+  "name": "Today — Mobile Workspace",
+  "short_name": "Today",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f7f7f5",
+  "theme_color": "#f7f7f5",
+  "lang": "zh-CN",
+  "description": "一个克制、本地优先的移动端记录与任务工作台",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
