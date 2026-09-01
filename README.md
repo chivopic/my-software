@@ -8,6 +8,7 @@
 | --- | --- | --- | --- |
 | [`personal-workbench/`](./personal-workbench) | 笔记 / 任务 / 计划的个人工作台网页应用 | Next.js + TypeScript + Prisma/PostgreSQL | 使用中（V0，部署在 Vercel） |
 | [`vooc/`](./vooc) | 本地优先的 macOS 原生 Markdown 笔记应用 | Swift + AppKit（`vooc/macos`），另有独立概念设计（`vooc/design`） | 原型阶段 |
+| [`test1/`](./test1) | 手机端优先、本地优先的快速记录 / 任务 PWA | HTML + CSS + JavaScript + IndexedDB | MVP 开发中 |
 
 每个目录内部有自己的 `README.md`，写清楚这个项目是什么、怎么跑起来、怎么部署——具体内容以那份 README 为准，这份根 README 只做索引。
 
