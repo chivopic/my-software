@@ -320,4 +320,3 @@ theme();
 icons();
 seed().then(render);
 nav(view);
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("./sw.js").catch(console.warn);
