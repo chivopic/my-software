@@ -11,7 +11,10 @@
 - 记录搜索、编辑和删除
 - 任务创建、完成、删除和筛选
 - IndexedDB 本地持久化
-- JSON 数据导出 / 导入；导入按 `updatedAt` 安全合并，不先清空现有数据
+- Notes / Tasks 同步就绪数据模型：`userId / deviceId / version / deletedAt / syncStatus`
+- 本地 `outbox` 变更队列，为后续 push / pull 云同步准备
+- 删除采用 tombstone 软删除，UI 立即隐藏但保留跨设备删除语义
+- JSON 数据导出 / 导入；备份 v2 保留同步元数据，并兼容旧 v1 备份
 - Vite PWA 构建与 Workbox 离线缓存
 - 深色模式
 - 192×192 / 512×512 PNG 安装图标
@@ -24,7 +27,7 @@
 ```text
 index.html        页面结构
 main.js           Vite 入口
-app.js            当前业务逻辑和 IndexedDB 数据层
+app.js            当前业务逻辑、IndexedDB 数据层和本地同步队列
 icons.js          本地图标运行时
 styles.css        样式
 public/           PWA / Android 共用静态图标
@@ -73,7 +76,7 @@ npm run android:sync
 npm run android:open
 ```
 
-仓库的 `Today Workspace Android` GitHub Actions 工作流会在相关 PR 和 `main` 更新时构建 debug APK，并上传 `today-workspace-debug-apk` artifact。正式发布版后续会加入稳定的原生工程、签名密钥管理和 AAB 构建。
+仓库的 `Today Workspace Android` GitHub Actions 工作流会在相关 PR 和 `main` 更新时构建 debug APK，并上传 `today-workspace-debug-apk` artifact。CI 当前使用 Node 22、JDK 21 和 Android SDK 36。正式发布版后续会加入稳定的原生工程、签名密钥管理和 AAB 构建。
 
 ## 部署
 
@@ -87,17 +90,36 @@ Vite 默认输出 `dist/`，Vercel 会自动识别并部署。
 
 ## 数据策略
 
-当前仍然是 local-first：记录和任务首先保存在当前设备的 IndexedDB 中。数据库仍沿用旧 key `test1-workspace`，这是有意保留的兼容策略，避免现有用户升级后看不到原来的本地数据。
+Today Workspace 保持 local-first：记录和任务首先写入当前设备的 IndexedDB，不等待网络。数据库继续沿用旧 key `test1-workspace`，避免升级后看不到已有本地数据。
 
-设置里的“导出 JSON”可以生成完整本地备份；“导入 JSON”按 `id + updatedAt` 合并，不会先清空当前数据库。
+IndexedDB schema 当前为 v2，包含三个 object store：
 
-下一阶段会在不破坏本地优先体验的前提下增加账号和同步层：本地写入即时完成，联网后再把变更同步到云端。删除也会从物理删除升级为可同步的软删除语义。
+```text
+notes
+  id / text / createdAt / updatedAt
+  userId / deviceId / version / deletedAt / syncStatus
+
+tasks
+  id / text / done / createdAt / updatedAt
+  userId / deviceId / version / deletedAt / syncStatus
+
+outbox
+  id / store / entityId / operation / record / deviceId / queuedAt
+```
+
+每次新建、编辑、完成任务或删除时，实体更新和 outbox 入队在同一个 IndexedDB transaction 中完成。这样即使应用在操作中途退出，也不会出现“本地内容已经变了，但同步队列没有记录”的状态。
+
+删除不再直接物理移除，而是写入 `deletedAt`。普通 UI 会过滤 tombstone；未来同步层则可以把删除传播到其他设备。
+
+从 schema v1 升级时，已有 Notes / Tasks 会原地补齐同步字段，并进入 outbox，不更换数据库 key。设置里的 JSON 备份已经升级到 v2，同时仍可导入旧 v1 备份；导入会按 `updatedAt`，时间相同时再按 `version` 合并，不先清空当前数据库。
+
+当前 outbox 只负责可靠记录本地变更，还没有把数据发送到服务器，因此产品仍然可以完全离线使用。
 
 ## 下一阶段
 
-1. 固化 Android 原生工程并完成真机 debug APK 验证
-2. 升级 Notes / Tasks 数据模型，为同步加入 `userId / deviceId / version / deletedAt`
-3. 接入账号系统和云端数据库
-4. 实现 local-first push / pull 同步与冲突策略
-5. 增加任务日期、通知、分享入口等原生能力
+1. 定义云端 Notes / Tasks schema、账号身份和 RLS 权限边界
+2. 实现 outbox push：把本地 pending 变更可靠上传并确认
+3. 实现增量 pull：按 cursor 拉取其他设备的变更和删除 tombstone
+4. 加入冲突策略、同步状态和失败重试
+5. 再增加任务日期、通知、系统分享入口等原生能力
 6. 配置正式 Android 签名并输出 release APK / AAB
