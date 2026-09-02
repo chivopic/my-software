@@ -9,6 +9,7 @@ export default defineConfig({
       injectRegister: "auto",
       includeAssets: ["icon.svg", "icon-192.png", "icon-512.png"],
       manifest: {
+        id: "./",
         name: "Today — Mobile Workspace",
         short_name: "Today",
         description: "一个克制、本地优先的移动端记录与任务工作台",
@@ -17,6 +18,9 @@ export default defineConfig({
         display: "standalone",
         background_color: "#f7f7f5",
         theme_color: "#f7f7f5",
+        lang: "zh-CN",
+        categories: ["productivity", "utilities"],
+        prefer_related_applications: false,
         icons: [
           {
             src: "icon-192.png",
