@@ -5,6 +5,8 @@ const SUPABASE_KEY = "sb_publishable_zhGDgWLzFX4_2HMLwgWn9w_nHIKmZuI";
 const DB = "test1-workspace";
 const DB_VERSION = 2;
 const BOUND_USER_KEY = "today-workspace-bound-user";
+const SEED_NOTE = "这是一个本地优先的移动工作台。打开即记录，不要求先整理。";
+const SEED_TASK = "试着完成一个任务，再新增一条记录";
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = selector => document.querySelector(selector);
@@ -153,9 +155,26 @@ function renderSession(session) {
   if (!loggedIn) setStatus("");
 }
 
-function bindUser(userId) {
+function untouchedSeed(record, text) {
+  return record && record.text === text && (record.version || 1) === 1 && !record.deletedAt && record.userId == null && record.syncStatus !== "synced";
+}
+
+async function discardUntouchedSeedExamples() {
+  const [notes, tasks] = await Promise.all([getAll("notes"), getAll("tasks")]);
+  const seeds = [
+    ...notes.filter(note => untouchedSeed(note, SEED_NOTE)).map(note => ["notes", note.id]),
+    ...tasks.filter(task => untouchedSeed(task, SEED_TASK)).map(task => ["tasks", task.id])
+  ];
+  for (const [storeName, id] of seeds) {
+    await deleteOne(storeName, id);
+    await deleteOne("outbox", `${storeName}:${id}`);
+  }
+}
+
+async function ensureUserBinding(userId) {
   const bound = localStorage.getItem(BOUND_USER_KEY);
   if (!bound) {
+    await discardUntouchedSeedExamples();
     localStorage.setItem(BOUND_USER_KEY, userId);
     return true;
   }
@@ -202,7 +221,7 @@ async function syncNow({ reloadOnChange = false } = {}) {
   if (syncing || !navigator.onLine) return;
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user) return;
-  if (!bindUser(session.user.id)) {
+  if (!await ensureUserBinding(session.user.id)) {
     setStatus("此设备的本地数据已绑定另一个账号，已暂停同步以避免数据混用。");
     return;
   }
