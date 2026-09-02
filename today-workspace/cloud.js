@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = "https://oydhkcghcfxwvyfclwgy.supabase.co";
 const SUPABASE_KEY = "sb_publishable_zhGDgWLzFX4_2HMLwgWn9w_nHIKmZuI";
+const AUTH_REDIRECT_URL = "https://today-workspace.vercel.app";
 const DB = "test1-workspace";
 const DB_VERSION = 2;
 const BOUND_USER_KEY = "today-workspace-bound-user";
@@ -137,7 +138,11 @@ function ensureAccountUi() {
       return;
     }
     setStatus("正在注册…");
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: AUTH_REDIRECT_URL }
+    });
     if (error) setStatus(error.message);
     else if (!data.session) setStatus("注册成功，请先到邮箱确认账号，再回来登录。");
   });
