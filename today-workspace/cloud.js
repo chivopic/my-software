@@ -279,6 +279,46 @@ async function ensureUserBinding(userId) {
   return bound === userId;
 }
 
+function sameQueuedRecord(entry, queued) {
+  if (!queued || queued.id !== entry.id || queued.queuedAt !== entry.queuedAt) return false;
+  const queuedRecord = queued.record || {};
+  const sentRecord = entry.record || {};
+  return queuedRecord.updatedAt === sentRecord.updatedAt
+    && (queuedRecord.version || 1) === (sentRecord.version || 1);
+}
+
+async function acknowledgeOutbox(entry, userId) {
+  const database = await openDb();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction([entry.store, "outbox"], "readwrite");
+    const entityStore = transaction.objectStore(entry.store);
+    const outboxStore = transaction.objectStore("outbox");
+    let acknowledged = false;
+
+    const queuedRequest = outboxStore.get(entry.id);
+    queuedRequest.onsuccess = () => {
+      const queued = queuedRequest.result;
+      if (!sameQueuedRecord(entry, queued)) return;
+
+      const entityRequest = entityStore.get(entry.entityId);
+      entityRequest.onsuccess = () => {
+        const current = entityRequest.result;
+        outboxStore.delete(entry.id);
+        if (current
+          && current.updatedAt === entry.record.updatedAt
+          && (current.version || 1) === (entry.record.version || 1)) {
+          entityStore.put({ ...current, userId, syncStatus: "synced" });
+        }
+        acknowledged = true;
+      };
+    };
+
+    transaction.oncomplete = () => resolve(acknowledged);
+    transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error || new Error("Sync acknowledgement aborted"));
+  });
+}
+
 async function pushOutbox(userId) {
   const entries = await getAll("outbox");
   let pushed = 0;
@@ -287,11 +327,7 @@ async function pushOutbox(userId) {
     const fn = entry.store === "notes" ? "sync_upsert_note" : "sync_upsert_task";
     const { error } = await supabase.rpc(fn, { payload: toRemote(record) });
     if (error) throw error;
-    await deleteOne("outbox", entry.id);
-    const current = await getOne(entry.store, entry.entityId);
-    if (current && current.updatedAt === record.updatedAt && (current.version || 1) === (record.version || 1)) {
-      await putOne(entry.store, { ...current, userId, syncStatus: "synced" });
-    }
+    await acknowledgeOutbox(entry, userId);
     pushed += 1;
   }
   return pushed;
