@@ -1,7 +1,9 @@
 const DB = "test1-workspace"; // Legacy key intentionally kept so existing installs retain data.
-const VER = 1;
+const VER = 2;
 const BACKUP_FORMAT = "today-workspace-backup";
-const BACKUP_VERSION = 1;
+const BACKUP_VERSION = 2;
+const LEGACY_BACKUP_VERSION = 1;
+const DEVICE_ID_KEY = "today-workspace-device-id";
 
 let view = "today";
 let filter = "open";
@@ -11,46 +13,144 @@ const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const uid = () => crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
 
+function getOrCreateDeviceId() {
+  const fallback = uid();
+  try {
+    const existing = localStorage.getItem(DEVICE_ID_KEY);
+    if (existing) return existing;
+    localStorage.setItem(DEVICE_ID_KEY, fallback);
+  } catch (error) {
+    console.warn("Unable to persist device id", error);
+  }
+  return fallback;
+}
+
+const DEVICE_ID = getOrCreateDeviceId();
+
+function normalizeSyncRecord(record) {
+  return {
+    ...record,
+    userId: record.userId ?? null,
+    deviceId: typeof record.deviceId === "string" && record.deviceId ? record.deviceId : DEVICE_ID,
+    version: Number.isInteger(record.version) && record.version > 0 ? record.version : 1,
+    deletedAt: Number.isFinite(record.deletedAt) && record.deletedAt > 0 ? record.deletedAt : null,
+    syncStatus: record.syncStatus === "synced" ? "synced" : "pending"
+  };
+}
+
+function outboxEntry(storeName, record, operation = record.deletedAt ? "delete" : "upsert") {
+  return {
+    id: `${storeName}:${record.id}`,
+    store: storeName,
+    entityId: record.id,
+    operation,
+    record,
+    deviceId: DEVICE_ID,
+    queuedAt: Date.now()
+  };
+}
+
+function migrateStore(storeName, transaction) {
+  const store = transaction.objectStore(storeName);
+  const outbox = transaction.objectStore("outbox");
+  const request = store.openCursor();
+  request.onsuccess = () => {
+    const cursor = request.result;
+    if (!cursor) return;
+    const record = normalizeSyncRecord(cursor.value);
+    cursor.update(record);
+    outbox.put(outboxEntry(storeName, record));
+    cursor.continue();
+  };
+}
+
 function db() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB, VER);
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = event => {
       const database = request.result;
       if (!database.objectStoreNames.contains("notes")) database.createObjectStore("notes", { keyPath: "id" });
       if (!database.objectStoreNames.contains("tasks")) database.createObjectStore("tasks", { keyPath: "id" });
+      if (!database.objectStoreNames.contains("outbox")) database.createObjectStore("outbox", { keyPath: "id" });
+
+      if (event.oldVersion < 2 && event.oldVersion > 0) {
+        migrateStore("notes", request.transaction);
+        migrateStore("tasks", request.transaction);
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
 }
 
-async function all(name) {
+async function all(name, { includeDeleted = false } = {}) {
   const database = await db();
   return new Promise((resolve, reject) => {
     const request = database.transaction(name).objectStore(name).getAll();
-    request.onsuccess = () => resolve(request.result || []);
+    request.onsuccess = () => {
+      const records = request.result || [];
+      resolve(includeDeleted || name === "outbox" ? records : records.filter(record => !record.deletedAt));
+    };
     request.onerror = () => reject(request.error);
   });
 }
 
-async function put(name, value) {
+async function getOne(name, id) {
   const database = await db();
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction(name, "readwrite");
-    transaction.objectStore(name).put(value);
-    transaction.oncomplete = resolve;
-    transaction.onerror = () => reject(transaction.error);
+    const request = database.transaction(name).objectStore(name).get(id);
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
   });
 }
 
-async function del(name, id) {
+async function writeLocal(name, record, operation) {
   const database = await db();
+  const normalized = normalizeSyncRecord({ ...record, syncStatus: "pending" });
   return new Promise((resolve, reject) => {
-    const transaction = database.transaction(name, "readwrite");
-    transaction.objectStore(name).delete(id);
-    transaction.oncomplete = resolve;
+    const transaction = database.transaction([name, "outbox"], "readwrite");
+    transaction.objectStore(name).put(normalized);
+    transaction.objectStore("outbox").put(outboxEntry(name, normalized, operation));
+    transaction.oncomplete = () => resolve(normalized);
     transaction.onerror = () => reject(transaction.error);
+    transaction.onabort = () => reject(transaction.error || new Error("Local write aborted"));
   });
+}
+
+async function createLocal(name, fields) {
+  const now = Date.now();
+  return writeLocal(name, {
+    id: uid(),
+    ...fields,
+    userId: null,
+    deviceId: DEVICE_ID,
+    version: 1,
+    deletedAt: null,
+    syncStatus: "pending",
+    createdAt: now,
+    updatedAt: now
+  }, "upsert");
+}
+
+async function updateLocal(name, id, patch) {
+  const current = await getOne(name, id);
+  if (!current || current.deletedAt) return null;
+  const now = Date.now();
+  const next = {
+    ...normalizeSyncRecord(current),
+    ...patch,
+    id: current.id,
+    createdAt: current.createdAt,
+    updatedAt: now,
+    deviceId: DEVICE_ID,
+    version: (Number.isInteger(current.version) && current.version > 0 ? current.version : 1) + 1,
+    syncStatus: "pending"
+  };
+  return writeLocal(name, next, next.deletedAt ? "delete" : "upsert");
+}
+
+async function softDelete(name, id) {
+  return updateLocal(name, id, { deletedAt: Date.now() });
 }
 
 const icons = () => window.lucide?.createIcons({ attrs: { "stroke-width": 1.8 } });
@@ -63,13 +163,11 @@ function taskRow(task) {
   element.innerHTML = `<button class="check" aria-label="${task.done ? "标记未完成" : "完成任务"}"><i data-lucide="check"></i></button><div class="main"><p class="title"></p><div class="meta">${fmt(task.createdAt)}</div></div><div class="actions"><button class="icon trash" aria-label="删除任务" title="删除"><i data-lucide="trash-2"></i></button></div>`;
   $(".title", element).textContent = task.text;
   $(".check", element).onclick = async () => {
-    task.done = !task.done;
-    task.updatedAt = Date.now();
-    await put("tasks", task);
+    await updateLocal("tasks", task.id, { done: !task.done });
     render();
   };
   $(".trash", element).onclick = async () => {
-    await del("tasks", task.id);
+    await softDelete("tasks", task.id);
     render();
   };
   return element;
@@ -85,7 +183,7 @@ function noteRow(note) {
     if (!event.target.closest(".trash")) openEditor(note);
   };
   $(".trash", element).onclick = async () => {
-    await del("notes", note.id);
+    await softDelete("notes", note.id);
     render();
   };
   return element;
@@ -153,11 +251,35 @@ function openEditor(note = null) {
 }
 
 async function seed() {
-  const [notes, tasks] = await Promise.all([all("notes"), all("tasks")]);
+  const [notes, tasks] = await Promise.all([
+    all("notes", { includeDeleted: true }),
+    all("tasks", { includeDeleted: true })
+  ]);
   if (notes.length || tasks.length) return;
   const now = Date.now();
-  await put("notes", { id: uid(), text: "这是一个本地优先的移动工作台。打开即记录，不要求先整理。", createdAt: now - 3600000, updatedAt: now - 3600000 });
-  await put("tasks", { id: uid(), text: "试着完成一个任务，再新增一条记录", done: false, createdAt: now - 1800000, updatedAt: now - 1800000 });
+  await writeLocal("notes", {
+    id: uid(),
+    text: "这是一个本地优先的移动工作台。打开即记录，不要求先整理。",
+    userId: null,
+    deviceId: DEVICE_ID,
+    version: 1,
+    deletedAt: null,
+    syncStatus: "pending",
+    createdAt: now - 3600000,
+    updatedAt: now - 3600000
+  }, "upsert");
+  await writeLocal("tasks", {
+    id: uid(),
+    text: "试着完成一个任务，再新增一条记录",
+    done: false,
+    userId: null,
+    deviceId: DEVICE_ID,
+    version: 1,
+    deletedAt: null,
+    syncStatus: "pending",
+    createdAt: now - 1800000,
+    updatedAt: now - 1800000
+  }, "upsert");
 }
 
 function theme() {
@@ -177,8 +299,19 @@ function backupFilename() {
 
 async function exportBackup() {
   try {
-    const [notes, tasks] = await Promise.all([all("notes"), all("tasks")]);
-    const payload = { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: new Date().toISOString(), notes, tasks };
+    const [notes, tasks] = await Promise.all([
+      all("notes", { includeDeleted: true }),
+      all("tasks", { includeDeleted: true })
+    ]);
+    const payload = {
+      format: BACKUP_FORMAT,
+      version: BACKUP_VERSION,
+      schemaVersion: VER,
+      deviceId: DEVICE_ID,
+      exportedAt: new Date().toISOString(),
+      notes,
+      tasks
+    };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -188,7 +321,9 @@ async function exportBackup() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    setBackupStatus(`已导出 ${notes.length} 条记录、${tasks.length} 个任务。`);
+    const activeNotes = notes.filter(note => !note.deletedAt).length;
+    const activeTasks = tasks.filter(task => !task.deletedAt).length;
+    setBackupStatus(`已导出 ${activeNotes} 条记录、${activeTasks} 个任务。`);
   } catch (error) {
     console.error(error);
     setBackupStatus("导出失败，请重试。");
@@ -197,33 +332,56 @@ async function exportBackup() {
 
 const validTime = value => Number.isFinite(value) && value > 0;
 const validId = value => typeof value === "string" && value.length > 0 && value.length <= 200;
-const validNote = note => note && validId(note.id) && typeof note.text === "string" && note.text.length <= 20000 && validTime(note.createdAt) && validTime(note.updatedAt);
-const validTask = task => task && validId(task.id) && typeof task.text === "string" && task.text.length <= 5000 && typeof task.done === "boolean" && validTime(task.createdAt) && validTime(task.updatedAt);
+const validNullableId = value => value == null || validId(value);
+const validDeletedAt = value => value == null || validTime(value);
+const validVersion = value => value == null || (Number.isInteger(value) && value > 0);
+const validDeviceId = value => value == null || validId(value);
+const validNote = note => note && validId(note.id) && typeof note.text === "string" && note.text.length <= 20000 && validTime(note.createdAt) && validTime(note.updatedAt) && validNullableId(note.userId) && validDeviceId(note.deviceId) && validVersion(note.version) && validDeletedAt(note.deletedAt);
+const validTask = task => task && validId(task.id) && typeof task.text === "string" && task.text.length <= 5000 && typeof task.done === "boolean" && validTime(task.createdAt) && validTime(task.updatedAt) && validNullableId(task.userId) && validDeviceId(task.deviceId) && validVersion(task.version) && validDeletedAt(task.deletedAt);
+
+function isNewer(candidate, existing) {
+  if (!existing) return true;
+  if (candidate.updatedAt !== existing.updatedAt) return candidate.updatedAt > existing.updatedAt;
+  return (candidate.version || 1) > (existing.version || 1);
+}
 
 function normalizeNewest(records) {
   const map = new Map();
   records.forEach(record => {
-    const existing = map.get(record.id);
-    if (!existing || record.updatedAt > existing.updatedAt) map.set(record.id, record);
+    const normalized = normalizeSyncRecord(record);
+    const existing = map.get(normalized.id);
+    if (isNewer(normalized, existing)) map.set(normalized.id, normalized);
   });
   return [...map.values()];
 }
 
 async function mergeBackup(importedNotes, importedTasks) {
-  const [currentNotes, currentTasks] = await Promise.all([all("notes"), all("tasks")]);
+  const [currentNotes, currentTasks] = await Promise.all([
+    all("notes", { includeDeleted: true }),
+    all("tasks", { includeDeleted: true })
+  ]);
   const noteMap = new Map(currentNotes.map(note => [note.id, note]));
   const taskMap = new Map(currentTasks.map(task => [task.id, task]));
-  const notesToWrite = normalizeNewest(importedNotes).filter(note => !noteMap.has(note.id) || note.updatedAt > noteMap.get(note.id).updatedAt);
-  const tasksToWrite = normalizeNewest(importedTasks).filter(task => !taskMap.has(task.id) || task.updatedAt > taskMap.get(task.id).updatedAt);
+  const notesToWrite = normalizeNewest(importedNotes).filter(note => isNewer(note, noteMap.get(note.id)));
+  const tasksToWrite = normalizeNewest(importedTasks).filter(task => isNewer(task, taskMap.get(task.id)));
   if (!notesToWrite.length && !tasksToWrite.length) return { notes: 0, tasks: 0 };
 
   const database = await db();
   await new Promise((resolve, reject) => {
-    const transaction = database.transaction(["notes", "tasks"], "readwrite");
+    const transaction = database.transaction(["notes", "tasks", "outbox"], "readwrite");
     const noteStore = transaction.objectStore("notes");
     const taskStore = transaction.objectStore("tasks");
-    notesToWrite.forEach(note => noteStore.put(note));
-    tasksToWrite.forEach(task => taskStore.put(task));
+    const outbox = transaction.objectStore("outbox");
+    notesToWrite.forEach(note => {
+      const normalized = normalizeSyncRecord({ ...note, syncStatus: "pending" });
+      noteStore.put(normalized);
+      outbox.put(outboxEntry("notes", normalized));
+    });
+    tasksToWrite.forEach(task => {
+      const normalized = normalizeSyncRecord({ ...task, syncStatus: "pending" });
+      taskStore.put(normalized);
+      outbox.put(outboxEntry("tasks", normalized));
+    });
     transaction.oncomplete = resolve;
     transaction.onerror = () => reject(transaction.error);
     transaction.onabort = () => reject(transaction.error || new Error("Import aborted"));
@@ -239,7 +397,8 @@ async function importBackup(file) {
   }
   try {
     const payload = JSON.parse(await file.text());
-    if (payload?.format !== BACKUP_FORMAT || payload?.version !== BACKUP_VERSION || !Array.isArray(payload.notes) || !Array.isArray(payload.tasks) || !payload.notes.every(validNote) || !payload.tasks.every(validTask)) throw new Error("Invalid backup format");
+    const supportedVersion = payload?.version === LEGACY_BACKUP_VERSION || payload?.version === BACKUP_VERSION;
+    if (payload?.format !== BACKUP_FORMAT || !supportedVersion || !Array.isArray(payload.notes) || !Array.isArray(payload.tasks) || !payload.notes.every(validNote) || !payload.tasks.every(validTask)) throw new Error("Invalid backup format");
     const merged = await mergeBackup(payload.notes, payload.tasks);
     await render();
     setBackupStatus(merged.notes || merged.tasks ? `已合并 ${merged.notes} 条记录、${merged.tasks} 个任务；较新的本地内容会保留。` : "没有需要更新的数据；当前内容已经更新或相同。");
@@ -261,9 +420,8 @@ $("#captureForm").onsubmit = async event => {
   const isTask = /^\/task(\s|$)/i.test(raw);
   const text = raw.replace(/^\/task\s*/i, "").trim();
   if (!text) return;
-  const now = Date.now();
-  if (isTask) await put("tasks", { id: uid(), text, done: false, createdAt: now, updatedAt: now });
-  else await put("notes", { id: uid(), text, createdAt: now, updatedAt: now });
+  if (isTask) await createLocal("tasks", { text, done: false });
+  else await createLocal("notes", { text });
   input.value = "";
   render();
 };
@@ -273,8 +431,7 @@ $("#taskForm").onsubmit = async event => {
   const input = $("#taskInput");
   const text = input.value.trim();
   if (!text) return;
-  const now = Date.now();
-  await put("tasks", { id: uid(), text, done: false, createdAt: now, updatedAt: now });
+  await createLocal("tasks", { text, done: false });
   input.value = "";
   render();
 };
@@ -296,9 +453,8 @@ $("#editorForm").onsubmit = async event => {
   event.preventDefault();
   const text = $("#editorText").value.trim();
   if (!text) return;
-  const old = editing ? (await all("notes")).find(note => note.id === editing) : null;
-  const now = Date.now();
-  await put("notes", { id: editing || uid(), text, createdAt: old?.createdAt || now, updatedAt: now });
+  if (editing) await updateLocal("notes", editing, { text, deletedAt: null });
+  else await createLocal("notes", { text });
   $("#editorDialog").close();
   editing = null;
   render();
