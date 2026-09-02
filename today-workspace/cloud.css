@@ -18,6 +18,11 @@
 }
 
 #cloudAccount .data-actions[hidden],
-#cloudLoginForm[hidden] {
+#cloudLoginForm[hidden],
+#cloudRecoveryForm[hidden] {
   display: none;
+}
+
+.cloud-sync-meta {
+  margin-bottom: -4px;
 }
