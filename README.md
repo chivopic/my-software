@@ -8,6 +8,7 @@
 | --- | --- | --- | --- |
 | [`personal-workbench/`](./personal-workbench) | 笔记 / 任务 / 计划的个人工作台网页应用 | Next.js + TypeScript + Prisma/PostgreSQL | 使用中（V0，部署在 Vercel） |
 | [`vooc/`](./vooc) | 本地优先的 macOS 原生 Markdown 笔记应用 | Swift + AppKit（`vooc/macos`），另有独立概念设计（`vooc/design`） | 原型阶段 |
+| [`memento/`](./memento) | 本地优先的 iPhone / iPad 原生笔记应用，含编辑器、组织、附件、分享扩展与小组件 | SwiftUI + UIKit/TextKit 2 + 可移植 Markdown | 功能工程已实现，Apple 平台验收待执行 |
 | [`Today Workspace`](https://github.com/chivopic/today-workspace) | 手机端优先、本地优先的快速记录 / 任务工作台 | Vite + JavaScript + IndexedDB + Supabase + Capacitor | 已独立维护 |
 
 ## 已独立项目
