@@ -34,3 +34,11 @@ NavigationSplitView：组织侧栏 → Notes 列表 → 编辑详情。iPhone �
 Phase 4 原文要求“根据优先级选择”。本轮选择上述离线能力。iCloud（跨设备冲突/entitlements）、Apple Pencil 手写识别、AI（供应商/隐私/成本）明确排除，不显示假开关、不宣称已接入；未来独立 ADR 后实施。
 
 设备认证锁是前台隐私屏障，**不是独立端到端加密产品**。文件采用 iOS 数据保护；备份是明文可迁移格式，导出由已解锁 app 发起。多窗口编辑 revision 冲突会显示恢复操作，不静默覆盖。
+
+## 文件、恢复与隐私
+
+Vault 位于 App Group 容器：`vault/notes/<UUID>.md` 保存笔记正文和 front matter，`vault/folders.json` 保存文件夹，`vault/attachments/` 保存附件。Markdown 是正文真源，front matter 为 JSON 编码的 YAML 元数据；搜索索引可从这些文件重建。Share Extension 和 App Intents 把捕获内容写入独立 `inbox/`，由 App 摄取并按 UUID 去重。Widget 读取受隐私设置控制的快照。
+
+每次修改以 revision 校验并原子写入。只有写入确认后才显示已保存；失败时保留内存草稿并提供重试或创建冲突副本。进入后台会尝试立即保存，但在写入成功前强制终止应用仍可能丢失最新编辑。损坏的原文件会保留并报告；只要有文件无法读取，就拒绝生成会遗漏内容的“完整”备份。完整备份导入先校验输入，不覆盖现有笔记；写入中断可能留下部分新副本，需要检查后重试。单独导入 `.md` 不会自动带上原目录的附件。
+
+认证锁阻止锁定期间的 App 内容访问，并让 Widget 不显示笔记、分享和快捷指令拒绝捕获；它不加密 vault 或导出的备份。Markdown 文件和 `.memento` 备份均为可读数据，导出由已解锁的 App 发起。

@@ -53,4 +53,4 @@ Linux 搜索基准仅说明本机 CPU/测试数据的表现，不能推断 iPhon
 ## 发布前门槛
 
 Apple SDK 编译与上述 UI/扩展验收仍未执行，因此不能称所有 phase 已验收或可上架。
-需要在 Mac 上选择 Team / App Group、执行脚本、检查实际截图和性能。CI 已准备但本次未推送，未运行远端 action，未生成已签名 IPA 或 App Store 上传。
+需要在 Mac 上选择 Team / App Group、执行脚本、检查实际截图和性能。GitHub Actions 已配置为在相关路径变更时运行；远端运行结果应以 Actions 页面为准。此记录不包含已签名 IPA 或 App Store 上传。
