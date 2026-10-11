@@ -15,5 +15,5 @@ result_path="test-results/iOS-$(date +%Y%m%d-%H%M%S).xcresult"
 mkdir -p test-results
 xcodebuild -project Memento.xcodeproj -scheme Memento -configuration Debug \
   -destination "platform=iOS Simulator,id=$simulator_id" -derivedDataPath DerivedData \
-  -resultBundlePath "$result_path" CODE_SIGNING_ALLOWED=NO test
+  -resultBundlePath "$result_path" CODE_SIGNING_ALLOWED=NO ARCHS='$(ARCHS_STANDARD)' ONLY_ACTIVE_ARCH=NO test
 echo "Real simulator screenshots are retained as XCTest attachments in $result_path."

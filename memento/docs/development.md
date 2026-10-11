@@ -10,6 +10,8 @@ python3 scripts/generate-project.py --check
 
 The `--check` option verifies that the checked-in Xcode project and scheme match the generator. Run `python3 scripts/generate-project.py` to regenerate them after changing project inputs. No XcodeGen, CocoaPods, or third-party Swift packages are required.
 
+The generator sets `ARCHS` to `$(ARCHS_STANDARD)` and disables active-architecture-only builds for the project. App, Share Extension, Widget, and the local `MementoCore` package must use matching simulator slices; changing only the generated project file is not sufficient. The simulator script repeats these settings for its `xcodebuild` invocation. This addresses the configuration gap behind reports of the Share Extension requesting an x86_64 module while the package produced arm64 only; an Xcode simulator run is still needed to verify the result.
+
 ## Device and extension signing
 
 The app, Share Extension, and Widget use these default identifiers:
