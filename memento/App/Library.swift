@@ -62,14 +62,14 @@ final class Library {
             apply(snapshot); ready = true
             _ = try await vault.ingestInbox()
             await refresh()
-        } catch { error = error.localizedDescription }
+        } catch { self.error = error.localizedDescription }
     }
 
     func refresh() async {
         guard let vault else { return }
         apply(await vault.snapshot())
         do { try await vault.writeWidgetSnapshot(locked: lockEnabled); WidgetCenter.shared.reloadAllTimelines() }
-        catch { error = "Notes are saved, but the widget could not update: \(error.localizedDescription)" }
+        catch { self.error = "Notes are saved, but the widget could not update: \(error.localizedDescription)" }
     }
 
     private func apply(_ snapshot: VaultSnapshot) {
