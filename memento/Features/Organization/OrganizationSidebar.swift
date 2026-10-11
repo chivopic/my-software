@@ -3,6 +3,7 @@ import MementoCore
 
 struct OrganizationSidebar: View {
     @Bindable var library: Library
+    var onChoose: (() -> Void)? = nil
     @State private var addingFolder = false
     @State private var editingFolder: Folder?
     var body: some View {
@@ -16,14 +17,7 @@ struct OrganizationSidebar: View {
             }
             Section("Folders") {
                 ForEach(flatFolders, id: \.folder.id) { row in
-                    NavigationLink(value: NoteScope.folder(row.folder.id)) {
-                        Label(row.folder.name, systemImage: "folder").padding(.leading, CGFloat(row.depth * 14))
-                    }.contextMenu {
-                        Button("Edit Folder", systemImage: "pencil") { editingFolder = row.folder }
-                        Button("Remove Folder", systemImage: "folder.badge.minus") {
-                            library.run { try await library.vault?.removeFolder(row.folder.id); library.scope = .all }
-                        }
-                    }
+                    folderEntry(row.folder, depth: row.depth)
                 }
                 Button("New Folder", systemImage: "folder.badge.plus") { addingFolder = true }
                     .accessibilityIdentifier("new-folder")
@@ -40,8 +34,35 @@ struct OrganizationSidebar: View {
         .sheet(isPresented: $addingFolder) { FolderForm(library: library, folder: nil) }
         .sheet(item: $editingFolder) { folder in FolderForm(library: library, folder: folder) }
     }
-    private func entry(_ title: String, _ symbol: String, _ scope: NoteScope) -> some View {
-        NavigationLink(value: scope) { Label(title, systemImage: symbol) }
+    @ViewBuilder private func entry(_ title: String, _ symbol: String, _ scope: NoteScope) -> some View {
+        if onChoose != nil {
+            Button { choose(scope) } label: { Label(title, systemImage: symbol) }
+        } else {
+            NavigationLink(value: scope) { Label(title, systemImage: symbol) }
+        }
+    }
+    @ViewBuilder private func folderEntry(_ folder: Folder, depth: Int) -> some View {
+        Group {
+            if onChoose != nil {
+                Button { choose(.folder(folder.id)) } label: {
+                    Label(folder.name, systemImage: "folder").padding(.leading, CGFloat(depth * 14))
+                }
+            } else {
+                NavigationLink(value: NoteScope.folder(folder.id)) {
+                    Label(folder.name, systemImage: "folder").padding(.leading, CGFloat(depth * 14))
+                }
+            }
+        }.contextMenu {
+            Button("Edit Folder", systemImage: "pencil") { editingFolder = folder }
+            Button("Remove Folder", systemImage: "folder.badge.minus") {
+                library.run { try await library.vault?.removeFolder(folder.id); library.scope = .all }
+            }
+        }
+    }
+    private func choose(_ scope: NoteScope) {
+        library.scope = scope
+        library.selection = nil
+        onChoose?()
     }
     private var tags: [String] { Array(Set(library.notes.filter { $0.deletedAt == nil }.flatMap(\.tags))).sorted() }
     private var flatFolders: [(folder: Folder, depth: Int)] {
