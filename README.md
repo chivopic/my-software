@@ -2,7 +2,24 @@
 
 **A personal software lab for building and learning from small, independent apps.**
 
-![Hand-drawn illustrations of projects in this repository; these are artwork, not product screenshots](./assets/project-illustrations.png)
+## Featured design · VOOC for macOS
+
+A calm, local-first Markdown notebook concept built around native macOS interactions, keyboard-first navigation, and a warm, paper-like interface.
+
+> **Concept previews:** The images below illustrate the proposed VOOC design. They are **not screenshots of the current Swift/AppKit prototype**.
+
+### Main window
+
+A three-column workspace for vault navigation, note discovery, and focused writing.
+
+![VOOC three-column main window concept](./vooc/design/previews/01-main-window.svg)
+
+| Quick open | Brand direction |
+| :---: | :---: |
+| ![VOOC keyboard-first quick open concept](./vooc/design/previews/02-quick-open.svg) | ![VOOC brand board with icon and warm neutral palette](./vooc/design/previews/03-brand-board.svg) |
+| Keyboard-first search across a local vault | Folded-paper mark, icon, and color palette |
+
+[Explore VOOC design previews](./vooc/design/README.md) · [Read the design specification](./vooc/design/design-spec.md) · [Run the macOS prototype](./vooc/macos/README.md)
 
 ## Projects
 
