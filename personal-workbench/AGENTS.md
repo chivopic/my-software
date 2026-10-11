@@ -65,6 +65,8 @@
 `prisma` 的 npm `latest` 目前指向 8.0.0-rc，**不要跟**，停在 7.10 稳定版。
 TypeScript 停在 5.9 而不是 7.x：生态里的 eslint 插件尚未跟上，等 V1 再评估。
 
+V0 不提供应用内用户账户。`middleware.ts` 的 HTTP Basic 密码门用于部署访问控制：本地开发可以不设 `APP_PASSWORD`；生产环境必须设置，否则请求会被拒绝。它也保护 `/api/export`，但不提供按用户隔离或数据加密。
+
 ```text
 next  react  react-dom  typescript
 tailwindcss  @tailwindcss/postcss     # v4 用 CSS-first 配置，不需要 tailwind.config 和 autoprefixer
@@ -172,7 +174,7 @@ feat(tasks): 四列看板与状态切换
 | # | 任务 | 依赖 | 完成即验收 |
 | --- | --- | --- | --- |
 | V0-01 | 初始化项目：Next.js + TS + Tailwind + ESLint/Prettier，配好 `pnpm` 脚本（dev/build/typecheck/lint/test） | — | `pnpm dev` 起得来，首页显示占位 |
-| V0-02 | 接 Prisma + Postgres：`docker-compose.yml`（本地 pg）、`schema.prisma`（照抄 docs/03 第 2 节）、首个 migration、`lib/db.ts`、`prisma/seed.ts`、`lib/current-user.ts` | 01 | `pnpm prisma migrate dev` + `pnpm db:seed` 成功，Prisma Studio 里能看到 local-user |
+| V0-02 | 接 Prisma + Postgres：`docker-compose.yml`（本地 pg）、`schema.prisma`（照抄 docs/03 第 2 节）、首个 migration、`lib/db.ts`、`prisma/seed.ts`、`lib/current-user.ts` | 01 | `pnpm db:migrate` + `pnpm db:seed` 成功，Prisma Studio 里能看到 local-user |
 | V0-03 | 布局骨架：`AppShell` / Sidebar / Topbar、主题变量、深浅色切换、`ui/` 基础组件（button/input/textarea/select/card/badge/dialog/toast/empty-state） | 01 | 四个路由都能通过侧边栏跳转，深浅色正常 |
 | V0-04 | Notes 列表 + CRUD：`/notes`、`/notes/new`、软删除、`lib/queries/notes.ts`、`lib/mutations/notes.ts` | 02,03 | 能新建、能在列表看到、能删除且列表不再显示 |
 | V0-05 | Notes 编辑器：`/notes/[id]`，Markdown 编辑/预览切换，800ms 自动保存与保存状态提示 | 04 | 输入后不点保存，刷新页面内容还在 |

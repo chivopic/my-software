@@ -1,6 +1,6 @@
 # Changelog
 
-本项目的版本节奏见 [README](README.md#版本路线)。日期为发布日。
+版本与发布流程见 [发布说明](../docs/releasing.md)。日期为该项目的发布日。
 
 ## [0.1.0] — 2026-08-30
 
@@ -42,4 +42,4 @@ V0：把「记录 → 任务 → 计划 → 完成」的闭环跑通。可以每
 ### 尚未包含
 
 Projects 管理界面、周视图与 Goals、Daily Review 与统计、Daily Brief 信息流、
-任何 AI 能力、语义搜索。见 README 的版本路线。
+AI 能力和语义搜索尚未实现。未发布的想法见 [backlog](docs/backlog.md)。

@@ -1,0 +1,27 @@
+name: Feature request
+description: Propose a change to a project or its documentation.
+title: "[Feature]: "
+body:
+  - type: dropdown
+    id: project
+    attributes:
+      label: Project
+      options:
+        - Personal Workbench
+        - Memento
+        - VOOC for macOS
+        - Repository documentation or CI
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true

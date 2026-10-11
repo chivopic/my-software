@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a reproducible problem in one of the projects.
+title: "[Bug]: "
+body:
+  - type: dropdown
+    id: project
+    attributes:
+      label: Project
+      options:
+        - Personal Workbench
+        - Memento
+        - VOOC for macOS
+        - Repository documentation or CI
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: Include the expected result and the result you saw.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. ...\n2. ..."
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Project version or commit, OS, and relevant runtime/toolchain versions.
+    validations:
+      required: false
