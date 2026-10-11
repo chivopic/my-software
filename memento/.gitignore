@@ -1,0 +1,7 @@
+.build/
+.swiftpm/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+test-results/
+__pycache__/

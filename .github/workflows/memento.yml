@@ -1,0 +1,26 @@
+name: Memento
+on:
+  push:
+    paths: ['memento/**', '.github/workflows/memento.yml']
+  pull_request:
+    paths: ['memento/**', '.github/workflows/memento.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-ios:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Core reliability tests
+        run: bash memento/scripts/test-core.sh
+      - name: Native simulator and screenshots
+        run: bash memento/scripts/test-ios.sh
+      - name: Keep actual simulator results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Memento-iOS-results
+          path: memento/test-results/
+          if-no-files-found: ignore
