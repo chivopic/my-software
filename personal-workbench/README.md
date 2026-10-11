@@ -49,7 +49,7 @@ Other project scripts are listed in [`package.json`](package.json). Avoid `pnpm 
 
 See the [Vercel deployment guide](docs/04-deployment.md). Set the Vercel Root Directory to `personal-workbench` and configure `DATABASE_URL` and `APP_PASSWORD`.
 
-V0 has no user accounts or per-user authorization. `APP_PASSWORD` adds a shared HTTP Basic password gate; it is not a multi-user authentication system. Set it before exposing a deployment to the public internet.
+V0 has no user accounts or per-user authorization. `APP_PASSWORD` adds a shared HTTP Basic password gate to pages and `/api/export`. Local development allows access without it; production denies requests when it is missing. Configure it for every deployed environment. This is not a multi-user authentication system or data encryption.
 
 ## Project documentation
 
