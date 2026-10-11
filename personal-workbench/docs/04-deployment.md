@@ -46,13 +46,15 @@ pnpm db:seed     # 建 local-user 和三个初始标签
 
 ## 3. 想一个访问密码
 
-V0 没有认证系统。部署到公网后，任何拿到网址的人都能读写你的全部笔记和任务，
-`/api/export` 更是一次吐出所有数据。所以 `middleware.ts` 加了一道 HTTP Basic 挂锁：
+V0 没有用户账户或按用户授权。部署到公网后，任何拿到网址的人都可能读写你的全部笔记和任务，
+`/api/export` 也会返回全部数据。`middleware.ts` 用 HTTP Basic 密码门保护页面和 API：
 
 - 设了环境变量 `APP_PASSWORD` → 打开网页要求输密码（用户名随便填）
-- 没设 → 完全不拦（本地开发就是这种状态）
+- 本地开发未设置 `APP_PASSWORD` → 允许访问
+- 生产环境未设置 `APP_PASSWORD` → 拒绝访问
 
-**部署到公网时一定要设。** 这不是认证系统，只是一把挂锁；真正的多用户认证是 V1 的事。
+在 Vercel 的 Preview 和 Production 环境都配置 `APP_PASSWORD`（如果使用 `vercel dev`，也配置 Development）。这不是用户认证、加密或按用户隔离；
+它是所有访问者共用的一道 HTTP Basic 密码门。
 
 ## 4. 在 Vercel 上导入
 

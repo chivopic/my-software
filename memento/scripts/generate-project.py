@@ -85,6 +85,8 @@ project_settings = {
     "IPHONEOS_DEPLOYMENT_TARGET": "17.0", "SDKROOT": "iphoneos", "SWIFT_VERSION": "5.0",
     "CLANG_ENABLE_MODULES": "YES", "CLANG_ENABLE_OBJC_ARC": "YES", "ENABLE_USER_SCRIPT_SANDBOXING": "YES",
     "GCC_C_LANGUAGE_STANDARD": "gnu17", "ALWAYS_SEARCH_USER_PATHS": "NO", "COPY_PHASE_STRIP": "NO",
+    # Keep app, extensions, and the local Swift package on the same simulator slices.
+    "ARCHS": "$(ARCHS_STANDARD)", "ONLY_ACTIVE_ARCH": "NO",
 }
 project_configs = configs("project-configs", project_settings)
 native_targets = []

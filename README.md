@@ -1,27 +1,37 @@
 # my-software
 
-A small collection of personal software projects, from local-first note apps to a web workspace for turning notes into plans.
+**A personal software lab for building and learning from small, independent apps.**
 
-![Hand-drawn illustrations of the projects in this repository](./assets/project-illustrations.png)
+![Hand-drawn illustrations of projects in this repository; these are artwork, not product screenshots](./assets/project-illustrations.png)
 
 ## Projects
 
-| Project | What it does | Status |
+| Project | Description | Status |
 | --- | --- | --- |
-| [Personal Workbench](./personal-workbench/README.md) | A single-user web workspace for notes, tasks, and day planning. | V0 implemented; deployment guide included. |
-| [VOOC for macOS](./vooc/macos/README.md) | A native notebook that edits Markdown files in a folder you choose. | Prototype. |
-| [VOOC design previews](./vooc/design/README.md) | Concept designs for the VOOC app, including its three-column window and quick-open flow. | Design workspace; previews are concepts, not app screenshots. |
-| [Memento](./memento/README.md) | An offline-first iPhone and iPad notes app with portable Markdown and native sharing. | Implementation in progress; Apple-platform validation remains. |
+| [Personal Workbench](./personal-workbench/README.md) | A single-user web app for Markdown notes, tasks, and day planning. | V0 implemented; deployment and backup limits are documented. |
+| [Memento](./memento/README.md) | An offline-first iPhone and iPad notes app built around portable Markdown. | In development; Apple-platform build and device acceptance remain unverified. |
+| [VOOC for macOS](./vooc/macos/README.md) | A native prototype for editing Markdown files in a folder you choose. | Prototype; see its README for current scope. |
+| [VOOC design previews](./vooc/design/README.md) | Concept art and interface direction for VOOC. | Design material, not screenshots of the running app. |
 | [Today Workspace](https://github.com/chivopic/today-workspace) | A mobile-first workspace for quick capture and tasks. | Maintained in its own repository. |
 
-Start with a project's README for requirements, setup, and development commands. The illustration above is decorative and does not depict the actual app interfaces.
+## Development
 
-## Repository conventions
+Each project has its own toolchain. Start with its README for setup and requirements. From the repository root, the main checks are:
 
-- Keep each project's source, dependencies, README, and CI configuration in its own directory.
-- Use short-lived branches prefixed with the project name, such as `memento/editor-improvements`.
-- Scope CI workflows to the files for the project they build.
-- Deploy projects independently. For Personal Workbench on Vercel, use `personal-workbench` as the Root Directory.
-- Move a project to its own repository when it has an independent product and maintenance lifecycle.
+```bash
+cd personal-workbench && pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint && pnpm test && pnpm build
+cd ../memento && python3 scripts/generate-project.py --check && bash scripts/test-core.sh
+cd ../vooc/macos && swift test
+```
 
-Today Workspace moved to [its own repository](https://github.com/chivopic/today-workspace) on 2026-09-06. Its issues, pull requests, releases, and ongoing development live there; this repository retains its earlier history.
+Personal Workbench requires Node.js 20.9 or later, pnpm 10.33.0, and Docker Compose for its local PostgreSQL database. Memento simulator builds require macOS with Xcode 16 or later; its portable core tests can run with Swift 6 or later. VOOC requires macOS 14 or later and Swift 6 or later. Platform-specific checks are described in each project README.
+
+## Versions and contributions
+
+Projects use independent version numbers and tags. The existing unscoped `v0.1.0` tag belongs to Personal Workbench; future tags should include the project name. See [release and versioning policy](./docs/releasing.md) and [contribution guide](./CONTRIBUTING.md).
+
+No license has been selected. Until the repository owner chooses one, the repository does not grant general permission to reuse, modify, or redistribute its code. See [LICENSE status and options](./docs/releasing.md#license-decision).
+
+## Repository structure
+
+Projects keep their own source, dependencies, documentation, and CI. Today Workspace moved to [its own repository](https://github.com/chivopic/today-workspace) on 2026-09-06; this repository retains its earlier history.

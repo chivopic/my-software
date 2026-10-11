@@ -4,6 +4,8 @@ import MementoCore
 struct NotesHome: View {
     @Bindable var library: Library
     @State private var compactColumn: NavigationSplitViewColumn = .content
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var showingLibrary = false
     @State private var showingSettings = false
     @State private var showingWarnings = false
     @State private var permanentDelete: Note?
@@ -66,7 +68,13 @@ struct NotesHome: View {
             .onChange(of: library.scope) { _, _ in compactColumn = .content }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Library", systemImage: "sidebar.left") { compactColumn = .sidebar }
+                    Button("Library", systemImage: "sidebar.left") {
+                        if horizontalSizeClass == .compact {
+                            showingLibrary = true
+                        } else {
+                            compactColumn = .sidebar
+                        }
+                    }
                         .accessibilityIdentifier("library-sidebar")
                 }
                 ToolbarItem(placement: .primaryAction) {
@@ -108,6 +116,16 @@ struct NotesHome: View {
         .onChange(of: library.selection) { _, id in
             compactColumn = id == nil ? .content : .detail
             if id != nil { library.rememberSearch() }
+        }
+        .sheet(isPresented: $showingLibrary) {
+            NavigationStack {
+                OrganizationSidebar(library: library, onChoose: { showingLibrary = false })
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showingLibrary = false }
+                        }
+                    }
+            }
         }
         .sheet(isPresented: $showingSettings) { NavigationStack { SettingsView(library: library) } }
         .sheet(isPresented: $showingWarnings) {

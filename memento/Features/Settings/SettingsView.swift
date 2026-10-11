@@ -46,7 +46,7 @@ struct SettingsView: View {
                 Text("When locked, widgets hide note titles and share capture is unavailable. Notes stay on this device; there is no account, analytics or AI service. Device authentication protects app access, not an independently encrypted vault.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
-            Section("Your Data") {
+            Section {
                 LabeledContent("Notes", value: String(library.notes.count))
                 LabeledContent("Local Storage", value: ByteCountFormatter.string(fromByteCount: Int64(storageBytes), countStyle: .file))
                 Button("Import Markdown or Memento Backup", systemImage: "square.and.arrow.down") { importing = true }.disabled(busy)
@@ -55,6 +55,8 @@ struct SettingsView: View {
                     .font(.footnote).foregroundStyle(.secondary)
                 if let status { Text(status).font(.footnote).accessibilityIdentifier("import-status") }
                 if busy { ProgressView("Working…") }
+            } header: {
+                Text("Your Data").accessibilityIdentifier("settings-data-header")
             }
             Section("About") {
                 LabeledContent("Memento", value: "1.0")

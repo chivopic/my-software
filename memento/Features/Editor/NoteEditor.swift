@@ -87,7 +87,9 @@ import MementoCore
                         catch { library.error = error.localizedDescription }
                     }
                     Button("Delete Note", systemImage: "trash", role: .destructive) { confirmDelete = true }
-                } label: { Image(systemName: "ellipsis.circle").accessibilityLabel("Note Actions") }
+                } label: { Image(systemName: "ellipsis.circle") }
+                .accessibilityLabel("Note Actions")
+                .accessibilityIdentifier("note-actions")
             }
         }
         .onAppear {

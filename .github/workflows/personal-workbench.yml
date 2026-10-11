@@ -1,0 +1,37 @@
+name: Personal Workbench
+
+on:
+  push:
+    paths: ["personal-workbench/**", ".github/workflows/personal-workbench.yml"]
+  pull_request:
+    paths: ["personal-workbench/**", ".github/workflows/personal-workbench.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: personal-workbench
+    env:
+      DATABASE_URL: postgresql://workbench:workbench@localhost:5432/workbench?schema=public
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.4.0
+        with:
+          version: 10.33.0
+          run_install: false
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: personal-workbench/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
