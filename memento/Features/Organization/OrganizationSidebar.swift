@@ -26,6 +26,7 @@ struct OrganizationSidebar: View {
                     }
                 }
                 Button("New Folder", systemImage: "folder.badge.plus") { addingFolder = true }
+                    .accessibilityIdentifier("new-folder")
             }
             if !tags.isEmpty {
                 Section("Tags") { ForEach(tags, id: \.self) { tag in entry(tag, "number", .tag(tag)) } }

@@ -46,12 +46,22 @@ final class MementoUITests: XCTestCase {
 
     func testDeleteAndUndoRestoresNote() {
         create(title: "Recoverable", body: "Do not lose this")
+        // End text editing before using the navigation toolbar.
+        app.buttons["toggle-preview"].tap()
         let actions = app.buttons["note-actions"]
         XCTAssertTrue(actions.waitForExistence(timeout: 5))
-        expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: actions)
-        waitForExpectations(timeout: 5)
-        actions.tap()
-        app.buttons["Delete Note"].tap()
+        if actions.isHittable {
+            actions.tap()
+        } else {
+            // XCTest sometimes cannot AX-scroll a visible SwiftUI toolbar Menu.
+            // Only use its actual on-screen center, never a hard-coded coordinate.
+            let center = CGPoint(x: actions.frame.midX, y: actions.frame.midY)
+            XCTAssertTrue(app.frame.contains(center), "Note Actions must be on screen")
+            actions.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        }
+        let deleteAction = app.buttons["Delete Note"]
+        XCTAssertTrue(deleteAction.waitForExistence(timeout: 5))
+        deleteAction.tap()
         app.sheets.buttons["Delete Note"].tap()
         let undo = app.buttons["Undo"]
         XCTAssertTrue(undo.waitForExistence(timeout: 5)); undo.tap()
@@ -91,9 +101,11 @@ final class MementoUITests: XCTestCase {
         capture("05-settings")
         app.buttons["Done"].tap()
         app.buttons["library-sidebar"].tap()
-        XCTAssertTrue(app.buttons["New Folder"].waitForExistence(timeout: 5))
         capture("06-organization")
-        app.buttons["New Folder"].tap()
+        XCTAssertTrue(app.navigationBars["Library"].waitForExistence(timeout: 5), "Library sidebar should open")
+        let newFolder = app.buttons["new-folder"]
+        XCTAssertTrue(newFolder.waitForExistence(timeout: 5), "New Folder should be accessible in the sidebar")
+        newFolder.tap()
         let name = app.textFields["Folder Name"]; name.tap(); name.typeText("Work")
         app.buttons["Save"].tap()
         XCTAssertTrue(app.staticTexts["Work"].waitForExistence(timeout: 5))
