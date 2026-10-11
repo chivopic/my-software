@@ -46,7 +46,11 @@ final class MementoUITests: XCTestCase {
 
     func testDeleteAndUndoRestoresNote() {
         create(title: "Recoverable", body: "Do not lose this")
-        app.buttons["Note Actions"].tap()
+        let actions = app.buttons["note-actions"]
+        XCTAssertTrue(actions.waitForExistence(timeout: 5))
+        expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: actions)
+        waitForExpectations(timeout: 5)
+        actions.tap()
         app.buttons["Delete Note"].tap()
         app.sheets.buttons["Delete Note"].tap()
         let undo = app.buttons["Undo"]
@@ -77,7 +81,13 @@ final class MementoUITests: XCTestCase {
 
     func testSettingsAndOrganizationScreenshots() {
         app.buttons["Settings"].tap()
-        XCTAssertTrue(app.staticTexts["Your Data"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        let dataHeader = app.staticTexts["settings-data-header"]
+        for _ in 0..<4 {
+            if dataHeader.isHittable { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(dataHeader.isHittable, "The Your Data section must be reachable by scrolling")
         capture("05-settings")
         app.buttons["Done"].tap()
         app.buttons["library-sidebar"].tap()
